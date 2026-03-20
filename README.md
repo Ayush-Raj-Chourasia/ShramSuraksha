@@ -1,396 +1,860 @@
-<div align="center">
+# 🛡️ ShramSuraksha — श्रम सुरक्षा
+### *Parametric Income Protection for India's Invisible Workforce*
 
-# 🛡️ ShramSuraksha
+> **"Every raindrop that falls on Mumbai costs Ravi ₹80. He never asked for the rain. He shouldn't bear the loss."**
 
-### *Suraksha for every Shramik. Protection for every shift.*
-
-**AI-Powered Parametric Income Insurance for India's Gig Economy**
-
----
-
-[![Guidewire DEVTrails 2026](https://img.shields.io/badge/Guidewire-DEVTrails%202026-orange?style=for-the-badge)](https://guidewiredevtrails.com/)
-[![Team Era](https://img.shields.io/badge/Team-Era-blue?style=for-the-badge)](#team)
-[![Phase](https://img.shields.io/badge/Phase-Seed%20(Phase%201)-green?style=for-the-badge)](#timeline)
-[![Prize Pool](https://img.shields.io/badge/Prize%20Pool-%E2%82%B96%2C00%2C000-gold?style=for-the-badge)](#hackathon-context)
-
-</div>
+[![Phase](https://img.shields.io/badge/Phase-1%20Seed-blue)]()
+[![Hackathon](https://img.shields.io/badge/Guidewire-DEVTrails%202026-orange)]()
+[![Status](https://img.shields.io/badge/Status-Active-green)]()
 
 ---
 
-## 📌 Table of Contents
+## 🧭 Table of Contents
 
-- [The Problem](#the-problem)
-- [Our Solution](#our-solution)
-- [Key Features](#key-features)
-- [Target Persona](#target-persona)
-- [Core Disruptions Covered](#core-disruptions-covered)
-- [How Parametric Insurance Works](#how-parametric-insurance-works)
-- [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Team](#team)
-- [Hackathon Context](#hackathon-context)
-- [Timeline & Phases](#timeline--phases)
-
----
-
-## The Problem
-
-India's platform-based gig delivery workers — riding for **Zomato, Swiggy, Zepto, Amazon, Dunzo**, and more — are the backbone of our fast-paced digital economy. Yet they remain completely exposed to forces beyond their control.
-
-> **External disruptions such as extreme weather, severe pollution, floods, curfews, and local strikes can reduce a gig worker's monthly income by 20–30%.**
-
-When these disruptions hit:
-- Deliveries halt. Workers cannot go outdoors.
-- Pickup and drop locations become inaccessible.
-- The platform pays nothing. The worker absorbs 100% of the loss.
-- No insurance product exists that protects their **income** during these events.
-
-**India has 15+ million gig delivery workers. None of them have a safety net.**
+1. [The Real Problem — Beyond the Brief](#1-the-real-problem--beyond-the-brief)
+2. [Who Is Ravi? — Hyper-Specific Persona](#2-who-is-ravi--hyper-specific-persona)
+3. [Why Q-Commerce, Why Now](#3-why-q-commerce-why-now)
+4. [ShramSuraksha — What We Actually Built](#4-shramsuraksha--what-we-actually-built)
+5. [Parametric Triggers — Our 6-Signal Engine](#5-parametric-triggers--our-6-signal-engine)
+6. [Weekly Premium Model — The Math That Works](#6-weekly-premium-model--the-math-that-works)
+7. [AI/ML Architecture — How the Brain Works](#7-aiml-architecture--how-the-brain-works)
+8. [Adversarial Defense & Anti-Spoofing Strategy](#8-adversarial-defense--anti-spoofing-strategy-)
+9. [System Architecture & Tech Stack](#9-system-architecture--tech-stack)
+10. [6-Week Roadmap](#10-6-week-roadmap)
+11. [Business Viability](#11-business-viability)
+12. [Team](#12-team)
 
 ---
 
-## Our Solution
+## 1. The Real Problem — Beyond the Brief
 
-**ShramSuraksha** is an AI-enabled **parametric income insurance platform** built specifically for India's gig delivery workers.
+India has **11.3 million gig delivery workers** as of 2025. The Q-Commerce segment alone — Zepto, Blinkit, Swiggy Instamart — employs over **800,000 active riders** across 40+ cities.
 
-Unlike traditional insurance that requires claims, investigations, and paperwork — ShramSuraksha uses **real-world data triggers** (weather APIs, AQI feeds, disaster alerts) to automatically detect a qualifying disruption and instantly release a payout to the worker — **no claim filed, no delay, no hassle**.
+These workers operate under a brutal paradox:
 
-> *"ShramSuraksha" = Shram (श्रम, Labour) + Suraksha (सुरक्षा, Protection)*
-
-### What Makes It Parametric?
-
-| Traditional Insurance | ShramSuraksha (Parametric) |
+| The Platform Promise | The Worker's Reality |
 |---|---|
-| File a claim after the event | Payout triggers automatically on verified data |
-| Wait weeks for investigation | Payout released within hours |
-| Prove individual loss | If the event happened, you get paid |
-| Complex paperwork | Zero paperwork |
+| Deliver in 10 minutes | No work = no pay. Zero fixed salary. |
+| Be available 24/7 | Rain for 3 hours = ₹240 gone. No appeal. |
+| Maintain rating above 4.2 | Being late due to floods drops your rating |
+| Platform pauses your zone | You still owe your daily expenses |
+
+**The 20-30% income loss figure from the problem statement is conservative.** During Mumbai's July 2024 flooding, Blinkit and Zepto suspended operations in 18 pincodes for 14+ hours. Workers in those zones lost an average of **₹680-900 in a single day** — with zero recourse.
+
+No insurance product in India today covers this. Health insurance doesn't. Motor insurance doesn't. There is a **₹4,200 crore annual income gap** that evaporates from gig worker pockets due to uncontrollable disruptions.
+
+**ShramSuraksha closes this gap. Automatically. In under 90 seconds.**
 
 ---
 
-## Key Features
+## 2. Who Is Ravi? — Hyper-Specific Persona
 
-- **🤖 AI-Driven Disruption Detection** — Real-time integration with weather, AQI, disaster, and civic alert APIs to auto-detect qualifying income-loss events
-- **⚡ Automated Payouts** — Parametric triggers release instant payments without claims processing
-- **🔍 Intelligent Fraud Detection** — AI layer to detect anomalous claim patterns and prevent abuse
-- **📅 Weekly Pricing Model** — Premiums aligned with gig workers' weekly earning cycles, not annual
-- **📱 Mobile-First** — Designed for smartphone-native, low-bandwidth usage
-- **🌐 Multi-Platform** — Coverage extends across Zomato, Swiggy, Zepto, Amazon, Dunzo, and other platforms
+> Most teams will say "gig worker." We studied Ravi.
 
----
-
-## Target Persona
-
-> **Persona selection is in progress — to be finalized and updated here.**
-
-ShramSuraksha is designed for a specific gig delivery segment. The persona defines:
-- The type of delivery worker (2-wheeler, bicycle, on-foot, etc.)
-- Primary platforms they work on
-- Geographic focus (metro, tier-2 cities, etc.)
-- Most relevant disruption types for their daily work
-
-*This section will be updated once the persona is finalized.*
-
----
-
-## Core Disruptions Covered
-
-> **Critical Constraint:** ShramSuraksha covers **income lost** during disruptions only.  
-> ❌ No health coverage | ❌ No life insurance | ❌ No accident coverage | ❌ No vehicle repairs
-
-### Environmental Disruptions
-| Disruption | Trigger Condition | Income Impact |
-|---|---|---|
-| Extreme Heat | Temperature > threshold | Cannot work outdoors safely |
-| Heavy Rain / Floods | Rainfall > threshold / flood alert | Deliveries halted |
-| Severe Air Pollution | AQI > hazardous level | Unsafe outdoor work conditions |
-| Cyclone / Storm | Official weather alert | Full operational shutdown |
-
-### Social / Civic Disruptions
-| Disruption | Trigger Condition | Income Impact |
-|---|---|---|
-| Unplanned Curfew | Government-issued curfew | Cannot access pickup/drop zones |
-| Local Strikes / Bandhs | Verified civic disruption alerts | Market/zone closures |
-| Sudden Zone Closures | Authority-mandated closures | Delivery radius blocked |
-
-*Specific trigger thresholds and parameters are determined per persona based on the most relevant disruptions for that delivery segment.*
-
----
-
-## How Parametric Insurance Works
+**Primary Persona: Ravi Shankar Yadav**
 
 ```
-Worker subscribes → Pays weekly premium → Disruption occurs →
-External data API confirms event → Payout auto-triggered →
-Money reaches worker's wallet within hours
+Age:          26
+City:         Govandi, Mumbai (flood-prone zone, near Mankhurd)
+Platform:     Zepto (primary), Blinkit (backup when Zepto is slow)
+Vehicle:      Honda Activa (2019, not insured beyond third-party)
+Work Hours:   7 AM – 1 PM and 5 PM – 10 PM (peak slots)
+Avg Deliveries/Day: 22–28 orders
+Avg Daily Earning:  ₹720–940
+Monthly Earning:    ₹17,000–21,000
+Monthly Fixed Cost: ₹9,200 (rent ₹5,500, fuel ₹2,100, food ₹1,600)
+Safety Margin:      ₹7,800–11,800 (razor thin)
+Phone:        Redmi 10C (Android 12, 4G)
+UPI App:      PhonePe (primary payment tool)
+Savings:      Less than ₹3,000 (less than 3 days of expenses)
 ```
 
-### Weekly Pricing Model
-- Premiums are structured **weekly** to align with gig workers' typical payout cycle
-- Workers can subscribe, pause, or resume weekly — no annual lock-in
-- Affordable micro-premium tiers based on coverage level
+**What Ravi's week looks like when disruption hits:**
 
-### Fraud Detection Layer
-- AI model monitors payout patterns vs. verified external event data
-- Cross-references worker's active platform status during claimed disruption window
-- Flags anomalies for review without blocking legitimate payouts
+```
+Monday:     Normal day → ₹880 earned
+Tuesday:    Heavy rain, 4 hours lost → ₹320 earned (₹560 lost)
+Wednesday:  AQI 380, Zepto suspends zone → ₹0 earned
+Thursday:   Normal → ₹790 earned
+Friday:     Normal → ₹850 earned
+
+Week Total: ₹2,840 instead of ₹4,400
+Loss:       ₹1,560 (35% of weekly earnings gone)
+```
+
+**What ShramSuraksha does:**
+- Tuesday: Detects rainfall > 60mm/hr in Govandi → Auto-pays Ravi ₹480 by 2 PM
+- Wednesday: AQI breach detected → Auto-pays Ravi ₹600 for the missed shift
+
+**Ravi's actual weekly loss: ₹480 instead of ₹1,560.**
 
 ---
 
-## Adversarial Defense & Anti-Spoofing Strategy
+**Secondary Persona: Priya Menon**
 
-### The Threat: GPS Spoofing Fraud Rings
+```
+Age:          31
+City:         Whitefield, Bengaluru
+Platform:     Blinkit (primary)
+Unique Context: Single mother, 2 kids. 
+               Works morning shift only (6 AM – 12 PM).
+               Maximum vulnerable to morning disruptions.
+               Extreme heat in April-May kills her earnings.
+```
 
-**Market Crash Scenario:**  
-500+ organized delivery workers exploit GPS vulnerabilities. Using spoofing apps (₹500–2,000 cost), they fake locations in red-alert weather zones, trigger parametric payouts, and drain the liquidity pool in minutes. Coordination via Telegram. No individual claim looks suspicious. Collectively, they're a syndicate.
+---
 
-**Why Basic GPS Fails:**
-- GPS spoofing is commodity technology
-- Single spoofed claim is indistinguishable from legitimate claim in isolation
-- Real weather provides perfect cover for fake claims
+## 3. Why Q-Commerce, Why Now
 
-### ShramSuraksha's 7-Layer Defense Architecture
+We chose **Grocery/Q-Commerce delivery (Zepto/Blinkit)** as our persona focus. Here's why this is the highest-impact, most defensible choice:
 
-#### Layer 1: Behavioral Pattern Profiling
-**The Logic:** Each delivery worker has a unique movement signature. Fraud is deviation from that signature.
+### The 10-Minute Problem Creates a Unique Insurance Case
 
-- **Normal Patterns (ML Model):**
-  - Typical delivery routes per worker (cluster analysis on 30-day history)
-  - Velocity patterns (average speed between pickups = ~12-18 km/h for 2-wheeler)
-  - Active hours (most workers cluster orders 11 AM–9 PM)
-  - Zone favorites (workers repeat zones, rarely work new zones)
+Q-Commerce workers face a fundamentally different risk profile than food delivery:
 
-- **Spoofing Red Flags:**
-  - Location jump > 500m between consecutive deliveries (physically impossible in <2 minutes)
-  - Stationary at claimed "disruption zone" for > 20 minutes (active delivery requires movement)
-  - Completed 3+ deliveries same day, then claims "stranded" (contradictory)
-  - Claim filed < 5 minutes after "disruption" (honest workers typically wait 30+ min to see if conditions improve)
-  - No prior delivery history in claimed zone but suddenly "stranded" there
+| Factor | Food Delivery (Zomato/Swiggy) | Q-Commerce (Zepto/Blinkit) |
+|---|---|---|
+| Delivery window | 30-45 mins | **8-12 mins** |
+| Rain tolerance | Can wait at restaurant | **Cannot. Dark store to door. No shelter stop.** |
+| Income model | Per order + surge | Per order, **no surge in bad weather** |
+| Platform behavior during disruption | Reduce orders gradually | **Hard-pause entire pincodes** |
+| Worker income loss | Gradual decline | **Binary: full earnings or zero** |
+| Avg disruption loss per event | ₹200–350 | **₹480–900** |
 
-#### Layer 2: Platform Integration Verification
-**The Logic:** Cross-validate with actual delivery platform backend.
+The binary nature of Q-Commerce disruptions (platform pauses entire zones, not individual orders) makes parametric insurance **perfectly suited** — there's a clear trigger and a clear, calculable loss. No ambiguity, no adjustment needed.
 
-- **Query Zomato/Swiggy/Zepto APIs:**
-  - Is worker actually logged into app during claimed disruption window?
-  - Order acceptance/rejection logs (if orders were offered, were they accepted or declined?)
-  - Real delivery completion timestamps vs. claimed disruption start time
-  - If worker completed delivery at 2:47 PM and claims disruption started at 2:30 PM, it's fraud
-  - Active app engagement (is location being updated in real-time or static spoofed coord?)
+### Market Timing
+- January 2026: Blinkit and Zepto dropped the "10-minute promise" after government pressure and worker protests
+- Worker welfare is actively debated in Parliament (Gig Worker Welfare Bill, 2025)
+- First company to offer this product owns a **massive first-mover advantage**
 
-- **The Catch:**  
-  If a worker claims "stranded and cannot work" but the app shows they accepted 2 orders in that window, instant fraud flag.
+---
 
-#### Layer 3: Multi-Source Environmental Validation
-**The Logic:** Verify the weather actually happened at the EXACT location claimed.
+## 4. ShramSuraksha — What We Actually Built
 
-- **Hyper-Local Weather Fusion:**
-  - Google Weather API + OpenWeather API + IQAir (real-time AQI) + Government meteorological dept alerts
-  - Claimed "40°C heat wave" location vs. actual recorded temperature at lat/long (margin of error: ±2°C)
-  - Rainfall data from NOAA/IMD: "Heavy rain" claim vs. actual rainfall in mm at that grid point
-  - Wind speed data: "Cyclone-force winds" vs. actual anemometer readings from nearest weather station
-  - AQI spike: Claimed "hazardous pollution" vs. actual PM2.5 readings from closest sensor
+ShramSuraksha is a **parametric income protection platform** — not a traditional insurance product. The distinction matters:
 
-- **Geo-Fence Logic:**  
-  Divide city into 500m × 500m weather grid. Check: did ACTUAL severe weather occur in claimed grid cell within ±15 min of claim timestamp?
+```
+Traditional Insurance:
+  Worker files claim → Adjuster investigates → 
+  Documents requested → 15-30 day review → 
+  Payout (if approved) → Worker already in debt
 
-- **The Catch:**  
-  Weather happened 5 km away but worker claims stranded at specific location? Probable fraud.
+ShramSuraksha Parametric:
+  External trigger detected → AI validates worker was active → 
+  Fraud engine clears claim → Payout in 90 seconds → 
+  Worker has money before the rain stops
+```
 
-#### Layer 4: Network-Level Fraud Ring Detection (Graph Analysis)
-**The Logic:** Fraud rings are signatures of coordinated behavior. Isolate them via graph clustering.
+### Core Value Proposition
 
-- **Coordinated Submission Patterns:**
-  - Claims filed within 2–5 minute windows from multiple workers = ring signal
-  - Example: Workers A, B, C, D all file same-disruption claims at 2:31 PM, 2:33 PM, 2:35 PM, 2:37 PM → Coordinated ring
+> **No forms. No calls. No waiting. If the trigger fires and you were working, you get paid.**
+
+### Platform Scope (What We Cover)
+
+✅ **Covered — Income Loss from:**
+- Extreme rainfall (> 50mm/hr, IMD Red Alert issued)
+- Severe AQI breach (> 300, platform-verified suspension)
+- Heatwave (> 44°C sustained for 2+ hours during work shift)
+- Flash floods (IMD/NDMA alert issued for worker's zone)
+- Curfew/local unrest (state government notification)
+- Platform-mandated zone suspension (verified via platform data)
+
+❌ **Explicitly Excluded:**
+- Health, life, accident, or medical claims
+- Vehicle repair or damage
+- Self-reported disruptions without parametric verification
+- Income loss due to worker's own low rating or account suspension
+
+---
+
+## 5. Parametric Triggers — Our 6-Signal Engine
+
+Unlike generic weather APIs, ShramSuraksha uses a **multi-source corroboration model**. A payout only fires when **2+ independent signals** confirm the same disruption event.
+
+### Trigger Architecture
+
+```
+                    ┌─────────────────────────────┐
+                    │    TRIGGER CORROBORATION     │
+                    │    REQUIRES ≥ 2 SIGNALS      │
+                    └─────────────────────────────┘
+                              │
+     ┌────────────────────────┼─────────────────────────┐
+     ↓                        ↓                         ↓
+SIGNAL 1               SIGNAL 2                   SIGNAL 3
+OpenWeatherMap API     CPCB/OpenAQ API             IMD RSS Feed
+(Rainfall, Temp,       (AQI by pincode)            (Alerts, Warnings)
+ Wind speed)                                        
+     │                        │                         │
+SIGNAL 4               SIGNAL 5                   SIGNAL 6
+Platform Shadow        Crowd-Signal               Cell Network
+Demand Proxy           Aggregator                 Congestion
+(Zepto/Blinkit         (Twitter/X local           (Unusual drop in
+ order velocity        hashtags + news            active sessions
+ drops in zone)        API corroboration)         in a pincode)
+```
+
+### Trigger Table
+
+| Trigger | Primary Signal | Corroborating Signal | Threshold | Coverage |
+|---|---|---|---|---|
+| Heavy Rain | OpenWeather: rainfall > 50mm/hr | IMD Red Alert for district | Both required | ₹80/hour lost |
+| Severe Pollution | OpenAQ: AQI > 300 | CPCB advisory issued | Both required | ₹70/hour lost |
+| Extreme Heat | OpenWeather: temp > 44°C | IMD Heat Alert | Both required | ₹60/hour lost |
+| Flash Flood | IMD Flood Warning | Platform demand proxy drop > 70% in zone | Both required | Full shift coverage |
+| Zone Curfew | State Gov API / News | Platform zone suspension confirmed | Both required | Full shift coverage |
+| Platform Suspension | Platform order velocity = 0 | OpenWeather corroboration | Both required | Full shift coverage |
+
+### Why Multi-Signal Matters
+A single API can be wrong, delayed, or manipulated. Two independent signals from different systems being simultaneously wrong in the same way is statistically near-impossible. This isn't just better fraud prevention — it's also better accuracy for genuine workers.
+
+---
+
+## 6. Weekly Premium Model — The Math That Works
+
+### Pricing Philosophy
+Ravi earns ₹720-940/day. He cannot afford a premium that feels like a big number. Our pricing is designed around **one principle: the premium must feel like rounding error.**
+
+### Base Premium: ₹35/week
+
+This is less than one cup of chai per day. For Ravi, it's **0.4% of weekly earnings.**
+
+### AI-Adjusted Premium by Zone Risk Score
+
+```
+Zone Risk Score (0–100) = Weighted average of:
+  • Historical rainfall frequency in pincode (30%)
+  • Historical AQI breach frequency (20%)
+  • Historical platform suspension events (25%)
+  • Flood/waterlogging history (25%)
+
+Score 0–30  (Low Risk)    → ₹29/week  
+Score 31–55 (Medium Risk) → ₹39/week
+Score 56–75 (High Risk)   → ₹49/week
+Score 76–100 (Very High)  → ₹59/week
+```
+
+**Example: Govandi, Mumbai (Ravi's zone)**
+- High flood history → score: 74
+- Premium: ₹49/week
+- Maximum weekly payout: ₹600/day × 6 working days = ₹3,600 weekly coverage
+- **Premium-to-coverage ratio: 1:73**
+
+### Plan Tiers
+
+| Plan | Weekly Premium | Max Daily Payout | Max Weekly Coverage |
+|---|---|---|---|
+| Basic Suraksha | ₹29–59 (zone-adjusted) | ₹400 | ₹2,400 |
+| Full Suraksha | ₹49–89 (zone-adjusted) | ₹700 | ₹4,200 |
+| Suraksha+ | ₹79–119 (zone-adjusted) | ₹1,000 | ₹6,000 |
+
+### Premium Payment Flow
+- Deducted automatically every Monday via UPI AutoPay
+- Worker can pause for any week (no penalty, just no coverage that week)
+- No annual lock-in, no cancellation fee
+- Works on Ravi's PhonePe — no new app needed for payment
+
+---
+
+## 7. AI/ML Architecture — How the Brain Works
+
+ShramSuraksha has three distinct AI/ML systems. Each does a specific job.
+
+### Model 1: ZoneRisk Scorer (Risk Profiling)
+
+```
+TYPE: Gradient Boosted Tree (XGBoost)
+
+INPUTS:
+  • Pincode-level 5-year historical weather data
+  • IMD historical flood records by district
+  • CPCB historical AQI data by city zone
+  • Historical platform disruption frequency (mock data Phase 1, 
+    real data Phase 2 via platform API)
+  • Month of year (monsoon weighting)
+
+OUTPUT:
+  • Risk Score 0–100 per pincode
+  • Recalculated monthly as seasonal patterns shift
+  • Updated in real-time during active disruption events
+
+WHY XGBoost:
+  Handles mixed data types (categorical city data + continuous 
+  weather metrics) extremely well. Proven in actuarial risk 
+  modeling. Fast inference — calculates risk score in < 50ms.
+```
+
+### Model 2: WorkerActivity Classifier (Genuine Worker Verification)
+
+```
+TYPE: Ensemble (Random Forest + Rule Engine)
+
+INPUTS:
+  • Platform login timestamp
+  • Last GPS ping before disruption event (from app)
+  • Order history in last 2 hours before trigger
+  • Device accelerometer pattern (motion signature)
+  • Battery drain rate (active delivery = higher drain)
+  • Network session continuity
+
+OUTPUT:
+  • Activity Confidence Score (0–100)
+  • Score > 65 → Worker was genuinely active, claim proceeds
+  • Score 40–65 → Manual review queue
+  • Score < 40 → Claim rejected with explanation
+
+NOTE:
+  This model does NOT require real-time platform API in Phase 1.
+  We use app-collected signals as primary source.
+```
+
+### Model 3: FraudSense Engine (Anomaly Detection)
+
+```
+TYPE: Isolation Forest + Graph Neural Network (GNN)
+
+INPUTS:
+  See full Section 8 for adversarial architecture
+
+OUTPUT:
+  • FraudScore 0–100
+  • Network Graph Flag (is this worker connected to a fraud ring?)
+  • Claim approved / held / rejected
+```
+
+### ML Development Stack
+- **Training**: Python, scikit-learn, XGBoost, PyTorch (GNN)
+- **Serving**: FastAPI inference endpoint, response < 200ms
+- **Data**: Synthetic training data (Phase 1), real API data (Phase 2+)
+- **Monitoring**: Model drift detection via Evidently AI
+
+---
+
+## 8. Adversarial Defense & Anti-Spoofing Strategy 🛡️
+
+> **"500 delivery workers. Fake GPS. Real payouts. A coordinated fraud ring just drained a platform's liquidity pool."**
+> *— DEVTrails 2026 Market Crash Event*
+
+This section addresses the Market Crash directly and completely. Simple GPS verification is dead. Here is ShramSuraksha's multi-layered adversarial defense.
+
+---
+
+### 8.1 The Differentiation — Genuine Worker vs. Bad Actor
+
+The fundamental insight: **You cannot fake physics. You can only fake coordinates.**
+
+A genuine delivery worker caught in a rainstorm has a completely different *device behavioral signature* than someone sitting at home spoofing GPS coordinates. We exploit this at 7 levels:
+
+#### Layer 1 — Sensor Fusion (The Physics Test)
+
+```
+GPS coordinates can be spoofed.
+Accelerometer data cannot.
+Gyroscope data cannot.
+Barometric pressure cannot.
+Cell tower handoff patterns cannot.
+
+GENUINE WORKER IN RAIN:
+  • Accelerometer shows irregular motion (avoiding puddles, 
+    sudden braking, vehicle vibration profile)
+  • Gyroscope shows frequent orientation changes 
+    (navigation, looking around)
+  • Barometric pressure drops measurably during rainfall
+    (a real phone in real rain detects this)
+  • Cell tower switches every 30-90 seconds 
+    (physical movement through network cells)
+  • Battery drains 15-25% faster (screen on, GPS active, 
+    motor running = hotspot interference)
+
+GPS SPOOFER AT HOME:
+  • Accelerometer: near-zero variance (person sitting still)
+  • Gyroscope: minimal rotation (phone on a desk)
+  • Barometric pressure: stable (indoors, no weather change)
+  • Cell tower: static single tower (not moving)
+  • Battery: normal drain rate (no motor, no rain interference)
+
+DECISION: If GPS says "Govandi, Red Alert Zone" but 
+accelerometer says "sitting still indoors" → FRAUD FLAG
+```
+
+#### Layer 2 — Network Behavior Analysis (The Connectivity Paradox)
+
+```
+GENUINE INSIGHT:
+Heavy rain degrades mobile network quality measurably.
+A worker physically present in a rain zone will show:
+  • Increased packet loss in API calls
+  • Higher ping latency
+  • Intermittent connection drops
+  • Signal strength fluctuation (RSSI variance)
+
+A spoofer at home will show:
+  • Stable WiFi or 4G connection
+  • Low latency
+  • No packet loss
+  • Consistent RSSI
+
+We log network quality metrics from the app during the 
+claim window. Network quality MUST match the claimed 
+environment. WiFi-stable connection during a "Red Alert 
+monsoon event" is a primary fraud signal.
+```
+
+#### Layer 3 — The Telegram Syndicate Graph (The Coordination Detector)
+
+> **The problem statement tells us exactly how fraudsters coordinate: Telegram groups. We built a detector for this.**
+
+```
+INSIGHT:
+500 workers don't independently decide to commit fraud 
+simultaneously. They coordinate. And coordination leaves 
+network traces.
+
+OUR APPROACH — Claim Temporal-Spatial Graph Analysis:
+
+When a cluster of claims arrives:
+  1. Map claimants by their registered phone numbers
+  2. Check: Do any of these numbers share common 
+     "referred by" chains in our onboarding?
+  3. Check: Claim submission timestamps — 
+     genuine organic claims arrive with natural variance 
+     (±40 minutes). Coordinated fraud claims arrive in 
+     tight bursts (all within ±8 minutes of each other)
+  4. Check: Did all these claims come from the same 
+     pincode at the same time? 
+     Real disruptions create claims across a RADIUS,
+     not a single point.
+  5. Graph analysis: Build a social graph from referral 
+     data. If a fraud ring of 50 people is connected, 
+     their claims will cluster into a tight network graph.
+     Isolated genuine workers will show as 
+     disconnected nodes.
+
+FRAUD RING SIGNATURE:
+  • > 15 claims from same pincode in < 10 minutes
+  • Claim burst arriving ≤ 8 minutes of each other
+  • Network graph clustering coefficient > 0.7
+  • All claimants registered within same 2-week window
+
+→ AUTO-HOLD entire cluster for manual review
+→ NO individual penalized until review complete
+```
+
+#### Layer 4 — Platform Shadow Demand Proxy
+
+```
+INSIGHT:
+If Zepto/Blinkit truly suspended operations in a zone,
+their own order system shows it.
+
+WE DON'T NEED PLATFORM API ACCESS to detect this.
+
+Proxy Signal:
+  When a genuine platform disruption occurs in a zone,
+  our app's "active workers" count in that zone drops 
+  because the platform stops assigning orders.
+  Workers stop opening the platform app. 
+  Platform app session data visible to our app 
+  (with permission) shows platform foreground time 
+  drops to near-zero.
+
+If a worker claims Zepto was suspended in their zone,
+but their Zepto app shows active foreground usage 
+(they're browsing available orders), 
+that is a direct contradiction → FRAUD FLAG.
+```
+
+#### Layer 5 — Earnings Velocity Cross-Check
+
+```
+A genuine delivery worker has a 30-90 day earnings history.
+We know:
+  • Their typical daily earnings on normal days
+  • Their typical work start/end time
+  • Their order completion rate pattern
+
+A fraudster who recently created an account to exploit 
+a weather event will show:
+  • Account age < 14 days
+  • Zero or minimal earnings history before the claim
+  • First-ever claim coincides with first major weather event
+
+RULE: Accounts with < 14 days history or < ₹2,000 
+earned on platform before first claim → MANUAL REVIEW
+(Not auto-rejected — new workers deserve protection too,
+but with enhanced verification)
+```
+
+---
+
+### 8.2 The Data — Beyond GPS
+
+Our FraudSense engine analyzes **23 data points** per claim, not just GPS:
+
+```
+DEVICE SIGNALS (from app, user-consented):
+  1. GPS coordinates (standard)
+  2. GPS accuracy radius (spoofers have perfect "0m" accuracy)
+  3. Accelerometer variance (motion signature)
+  4. Gyroscope variance (orientation changes)
+  5. Barometric pressure reading
+  6. Cell tower ID sequence (handoff pattern)
+  7. RSSI/signal strength variance
+  8. Network type (WiFi vs cellular) — WiFi = suspicious
+  9. Battery drain rate in last 2 hours
+  10. Screen on/off frequency
+
+CLAIM BEHAVIOR SIGNALS:
+  11. Time from trigger to claim submission 
+      (< 3 min is suspicious — too fast to be genuine reaction)
+  12. Claim submission timestamp vs disruption window
+  13. Historical claim frequency (anomaly detection)
+  14. Platform app foreground time during claimed disruption
+  15. App-to-claim workflow path 
+      (genuine users browse, fraudsters go straight to claim)
+
+NETWORK/SOCIAL SIGNALS:
+  16. Claim burst count in pincode (last 15 minutes)
+  17. Referral chain depth to other claimants
+  18. Account age at time of claim
+  19. Earnings history completeness score
+  20. Registration-to-claim velocity 
+      (new accounts claiming immediately)
+
+ENVIRONMENTAL CORROBORATION:
+  21. Independent API corroboration score (our dual-signal system)
+  22. IMD alert active for claimed district: Yes/No
+  23. Historical disruption frequency for this pincode 
+      (is this even a plausible disruption zone?)
+```
+
+**FraudScore Calculation:**
+```
+FraudScore = Weighted sum of 23 signals
+  → 0–30:  AUTO APPROVE  (instant payout)
+  → 31–60: SOFT REVIEW   (pay 50% immediately, 50% after 24hr review)
+  → 61–80: HOLD          (human review, 4-hour SLA)
+  → 81–100: AUTO REJECT  (with full explanation to worker)
+```
+
+---
+
+### 8.3 The UX Balance — Protecting Honest Workers
+
+> **The hardest problem: A genuine worker in bad weather gets a network drop. Our system shouldn't punish them.**
+
+This is where most fraud systems fail — they protect the platform but harm honest users. ShramSuraksha takes a fundamentally different approach:
+
+#### The "Benefit of Doubt" Protocol
+
+```
+SCENARIO:
+Priya (genuine Blinkit worker) is in Whitefield.
+Heavy rain. Her phone signal drops.
+GPS becomes erratic. Accelerometer normal.
+Cell tower data: intermittent (expected in rain).
+FraudScore: 45 (SOFT REVIEW range).
+
+STANDARD FRAUD SYSTEM RESPONSE:
+→ Claim rejected. Priya gets nothing. She's angry. She leaves.
+
+SHRAMSURAKSHA RESPONSE:
+→ 50% payout issued IMMEDIATELY (₹300 of ₹600 due)
+→ Message to Priya: 
+  "We've confirmed the weather event. We're verifying 
+   your location data which showed some gaps — common 
+   in heavy rain! Your remaining ₹300 will be credited 
+   within 4 hours after a quick check. You're protected."
+→ Human reviewer checks within 4 hours
+→ If genuine (which network drop cases almost always are):
+  Full remaining ₹300 paid immediately
+```
+
+#### The Network Drop Exception
+
+```
+SPECIFIC RULE:
+If FraudScore is in 31–60 range AND:
+  - Network quality signals show genuine degradation
+  - Barometric pressure matches rainfall
+  - Cell tower shows physical movement (even if GPS erratic)
   
-- **Device Fingerprinting:**
-  - Same phone model, OS version, app version across "different" workers = likely ring members
-  - MAC address spoofing detection (device manufacturer validation)
-  - Same network ISP/telecom provider for geographically scattered workers
-
-- **Claim Similarity Clustering:**
-  - Claimed disruption zone (all members claim same 1km radius)
-  - Claim amounts (all claim exact same DC amount for same duration)
-  - Telegram group membership signals (same claim timestamps across members)
-
-- **Build a Fraud Ring Graph:**
-  ```
-  Node = Worker Account
-  Edge = Similarity Score (8 dimensions: timing, location, amount, device, ISP, claim pattern, weather match, platform activity)
-  If similarity_score > 0.75 between two accounts, they're likely ring members.
-  If Account A connects to B, B to C, C to D → Ring of 4 detected.
-  Freeze all 4 until review complete.
-  ```
-
-#### Layer 5: AI Probabilistic Scoring (Bayesian Confidence Model)
-**The Logic:** Combine all signals into a single fraud likelihood score.
-
-```
-P(Genuine Claim | GPS, Platform Activity, Weather, Behavior, Ring, Device) = ?
-
-Using Naive Bayes:
-  P(Genuine) = 
-    P(GPS plausible | history) × 
-    P(Platform activity shows disruption) × 
-    P(Weather actually occurred) × 
-    P(Behavior matches baseline) × 
-    P(No ring co-conspirators) × 
-    P(Device not spoofed)
-  
-Three Outcome Buckets:
-  - Score > 0.85: INSTANT APPROVAL (auto-payout in 1 hour)
-  - Score 0.50–0.85: PROVISIONAL APPROVAL + REVIEW (payout in 24 hours, clawback window 48 hours)
-  - Score < 0.50: FLAGGED FOR MANUAL REVIEW (no payout until verified)
+→ RECLASSIFY to SOFT REVIEW (not HOLD)
+→ Immediate 50% payout
+→ 4-hour resolution SLA
+→ Priya never waits more than 4 hours for full payout
 ```
 
-#### Layer 6: Honest Worker UX & Appeals
-**The Logic:** Don't penalize legitimate workers experiencing network drops during real disruptions.
+#### The Fraud Ring Isolation Rule
 
-- **Smart Flagging (Not Auto-Denial):**
-  - Flagged claim ≠ Denied claim. Worker gets provisional payout while being verified.
-  - First-time claimants get automatic trust bonus (+0.15 to confidence score)
-  - Claims during ACTUAL severe weather events get higher confidence threshold (more lenient)
+```
+CRITICAL DESIGN DECISION:
+When a cluster is flagged as a potential fraud ring,
+we do NOT auto-reject every member.
 
-- **Appeal Mechanism for False Negatives:**
-  - Worker can submit video/photo evidence of disruption (rain/wind/flooding from phone camera)
-  - Geolocation metadata from submitted media compared to claimed location (±50m accuracy)
-  - Voice call with worker: confirm story matches claim (verbal consistency check)
-  - Historical context: if worker has 50+ on-time deliveries, trust score increases
+Instead:
+  1. Cluster is HELD for 4 hours (not rejected)
+  2. Each worker is individually analyzed
+  3. Workers who pass individual analysis → paid 
+     (even if their social network looks suspicious)
+  4. Only workers with BOTH ring-level AND 
+     individual-level fraud signals → rejected
 
-- **Transparent Scoring:**
-  - Worker can see WHY they were flagged (not a black box)
-  - Example: "Your claim matched the weather data, but your device model appears identical to 3 other accounts claiming same disruption. Please submit proof."
+REASON:
+A genuine worker can coincidentally be in 
+the same Telegram group as a fraudster. 
+That doesn't make them guilty.
+Guilt by association is never our policy.
+```
 
-#### Layer 7: Real-Time Intervention & Fund Recovery
-**The Logic:** Detect and stop rings while fraud is in-flight, recover funds immediately.
+#### Worker Appeal System
 
-- **Ring Alert Threshold:**
-  - When 5+ coordinated accounts flagged simultaneously → instant ring alert
-  - Freeze all accounts in detected ring (no further payouts)
-  - Notify compliance + law enforcement immediately
+```
+Every rejected claim shows:
+  • Specific reason for rejection (plain Hindi/English)
+  • What data caused the flag
+  • One-click appeal button
+  • 24-hour human review for appeals
+  • If appeal succeeds: Full payout + ₹50 credit for the inconvenience
 
-- **Clawback Authority:**
-  - For confirmed fraud (post-review), recover payout via wallet debit
-  - If worker's wallet balance insufficient, mark account for debt recovery
-  - Repeat offenders: permanent blacklist across all partner platforms
-
-- **Device Blacklisting:**
-  - Blacklist phone IMEI/MAC of confirmed fraudsters
-  - Prevent same device from creating new accounts
-  - Cross-platform sharing: notify Zomato/Swiggy/Zepto to flag same IMEI
-
-### Why This Strategy Wins Against the Fraud Ring
-
-| Fraud Ring Tactic | ShramSuraksha Defense | Why It Works |
-|---|---|---|
-| GPS spoofing | Behavioral + platform verification | No single spoofed GPS stands alone |
-| Coordinated Telegram timing | Ring detection via graph clustering | Catches coordinated behavior automatically |
-| Fake weather claims | Multi-source environmental validation | Real weather must match location ± 15 min |
-| Distributed across 500 accounts | Device fingerprinting + ISP tracking | Ring members leak identifying signals |
-| Same claim amounts | Similarity clustering | Flags repetitive patterns instantly |
-| Network drop excuses | Honest worker UX + appeals | Legitimate workers don't get punished |
-
-### Feasibility & Build Timeline
-
-| Phase | Weeks | Focus |
-|---|---|---|
-| Seed (Phase 1) | 1–2 | Layer 1 + Layer 2 (behavioral modeling + platform APIs) |
-| Scale (Phase 2) | 3–4 | Layer 3 + Layer 4 (weather fusion + ring detection) |
-| Soar (Phase 3) | 5–6 | Layer 5 + Layer 6 + Layer 7 (ML scoring + UX + intervention) |
+This is not charity — it's trust building.
+One honest worker wrongly rejected and made whole 
+is worth more than 10 fraudsters caught.
+```
 
 ---
 
-## Tech Stack
+## 9. System Architecture & Tech Stack
 
-> *To be finalized as the build progresses across phases.*
+### Architecture Overview
 
-| Layer | Technology |
+```
+┌─────────────────────────────────────────────────────────┐
+│                    WORKER INTERFACE                      │
+│              React.js (PWA — works offline)              │
+│         WhatsApp Bot (for feature phones / Ravi)         │
+└─────────────────────┬───────────────────────────────────┘
+                      │ HTTPS / WebSocket
+┌─────────────────────▼───────────────────────────────────┐
+│                   API GATEWAY                            │
+│                 (Node.js / FastAPI)                       │
+│    Auth (OTP via MSG91) │ Rate Limiting │ Logging        │
+└──────┬──────────────────┬──────────────┬────────────────┘
+       │                  │              │
+┌──────▼──────┐  ┌────────▼──────┐  ┌───▼──────────────┐
+│  TRIGGER    │  │  ML INFERENCE  │  │  FRAUD ENGINE    │
+│  ENGINE     │  │  SERVICE       │  │  (FraudSense)    │
+│             │  │                │  │                  │
+│ OpenWeather │  │ ZoneRisk Model │  │ Isolation Forest │
+│ OpenAQ API  │  │ ActivityModel  │  │ Graph Neural Net │
+│ IMD RSS     │  │ (FastAPI)      │  │ 23-signal check  │
+│ News API    │  └────────────────┘  └──────────────────┘
+└──────┬──────┘           │                    │
+       └──────────────────┴────────────────────┘
+                          │
+              ┌───────────▼──────────┐
+              │      PostgreSQL      │
+              │  (Workers, Policies, │
+              │   Claims, Events)    │
+              │     + Redis Cache    │
+              │  (Real-time alerts)  │
+              └───────────┬──────────┘
+                          │
+              ┌───────────▼──────────┐
+              │   PAYOUT ENGINE      │
+              │  Razorpay Sandbox    │
+              │  (Phase 1: Mock)     │
+              │  (Phase 2: Live UPI) │
+              └──────────────────────┘
+```
+
+### Tech Stack
+
+| Layer | Technology | Why |
+|---|---|---|
+| Frontend | React.js (PWA) | Works offline — Ravi's 4G drops in rain |
+| Alternate UI | WhatsApp Business API | 80% of gig workers use WhatsApp daily |
+| Backend | Python FastAPI | Fast async for real-time triggers + ML serving |
+| ML Training | Python, XGBoost, PyTorch | Best-in-class for tabular + GNN models |
+| Database | PostgreSQL + TimescaleDB | Time-series data for weather events + claims |
+| Cache | Redis | Real-time trigger alerts across zones |
+| Weather | OpenWeatherMap API (free tier) | Most reliable free weather data in India |
+| AQI | OpenAQ + CPCB API | India-specific pollution data |
+| Payments | Razorpay Test Mode | Standard in India, UPI native |
+| Hosting | AWS Free Tier (EC2 + RDS) | Scalable from Phase 1 |
+| Auth | OTP via MSG91 | No email needed — just phone number |
+| DevOps | GitHub Actions CI/CD | Auto deploy on commit |
+
+### Why WhatsApp Bot Matters
+
+> Ravi doesn't have time to open an app during a storm. He's trying to shelter his Activa.
+
+A WhatsApp message arrives: *"🌧️ Red Alert in Govandi. ShramSuraksha is watching. Reply YES to activate coverage check."*
+
+He replies YES. That's all. The payout happens in the background. **No app opens required during a disaster.**
+
+---
+
+## 10. Six-Week Roadmap
+
+### Phase 1 — Seed [March 4–20]: Ideate & Foundation ✅
+
+| Deliverable | Status |
 |---|---|
-| Frontend | TBD |
-| Backend | TBD |
-| Behavioral ML | Python (scikit-learn / XGBoost for pattern detection) |
-| Ring Detection | NetworkX / Graph-tool (fraud ring clustering) |
-| Bayesian Scoring | PyMC / Stan (probabilistic modeling) |
-| Weather APIs | Google Weather + OpenWeather + IQAir + IMD API |
-| Device Fingerprinting | TBD |
-| Platform APIs | Zomato / Swiggy / Zepto Backend Integration (TBD) |
-| Database | TBD |
-| Cloud | TBD |
+| Persona research (Ravi, Priya) | ✅ Complete |
+| README with full architecture | ✅ This document |
+| Parametric trigger design | ✅ 6-signal corroboration model |
+| Weekly premium model | ✅ Zone-adjusted ₹29–119/week |
+| AI/ML architecture plan | ✅ 3 models defined |
+| Anti-spoofing strategy | ✅ 23-signal FraudSense engine |
+| GitHub repository setup | ✅ Folder structure initialized |
+| 2-minute strategy video | 🔄 Recording in progress |
 
 ---
 
-## Architecture
+### Phase 2 — Scale [March 21–April 4]: Build & Protect
 
-> *Architecture diagram will be added in the Scale phase.*
+**Theme: "Protect Your Worker" — Working software.**
+
+**Week 3 Focus:**
+- [ ] Worker onboarding flow (phone OTP → zone detection → risk score → plan selection → UPI AutoPay setup)
+- [ ] ZoneRisk ML model training (synthetic data, pincode-level)
+- [ ] OpenWeatherMap + OpenAQ API integration
+- [ ] Trigger detection engine (dual-signal corroboration live)
+- [ ] Basic claim flow (trigger fires → worker notified → claim created)
+
+**Week 4 Focus:**
+- [ ] FraudSense engine v1 (rule-based + Isolation Forest)
+- [ ] Dynamic premium calculator live
+- [ ] Razorpay sandbox payout integration
+- [ ] Worker dashboard (active policy, payout history)
+- [ ] WhatsApp notification integration (Twilio/Meta sandbox)
+- [ ] Admin dashboard v1 (claims overview, fraud flags)
+
+**Phase 2 Submission:**
+- 2-minute demo video showing: Registration → Policy → Trigger → Claim → Payout
+- Full executable source code
+- Live demo URL
 
 ---
 
-## Team
+### Phase 3 — Soar [April 5–17]: Scale & Perfect
 
-**Team Name:** Era  
-**Institution:** National Insurance Academy (NIA) × Guidewire DEVTrails 2026
+**Theme: "Perfect for Your Worker" — Production-grade.**
+
+**Week 5 Focus:**
+- [ ] FraudSense v2: Graph Neural Network for syndicate detection
+- [ ] Telegram coordination detection logic
+- [ ] Sensor fusion anti-spoofing (accelerometer + barometric)
+- [ ] Network quality analysis during claim validation
+- [ ] "Benefit of Doubt" 50% immediate payout logic
+- [ ] Appeal workflow (rejected → appeal → human review)
+- [ ] Instant payout < 90 seconds (benchmark and prove it)
+
+**Week 6 Focus:**
+- [ ] Intelligent Dashboard:
+  - Worker view: Protected earnings, active coverage badge
+  - Admin view: Loss ratio, zone-wise claim heatmap, syndicate alerts, predictive next-week disruption forecast
+- [ ] Performance optimization (< 200ms ML inference)
+- [ ] Security hardening
+- [ ] Final pitch deck (PDF)
+- [ ] 5-minute demo video (simulate rainstorm → auto-trigger → fraud check → 90-second payout)
+
+**Final Submission Package:**
+- 5-minute demo video (public link)
+- Pitch deck PDF
+- Full GitHub repository with deployment guide
+- Live demo URL
+
+---
+
+## 11. Business Viability
+
+### Unit Economics (Per Worker, Per Week)
+
+```
+Average Premium Collected:        ₹44/week (blended)
+Average Expected Claim Payout:    ₹31/week (based on historical 
+                                   disruption frequency in metro zones)
+Gross Margin per Worker/Week:     ₹13 (30% gross margin)
+Target Active Workers (6 months): 10,000
+Monthly Revenue at target:        ₹17.6 lakh
+Monthly Claim Payout:             ₹12.4 lakh
+Operating Margin:                 29.5%
+```
+
+### Why This Is Actuarially Sound
+
+Parametric insurance is inherently more efficient than traditional insurance because:
+- No adjusters (fully automated → 0 claim processing cost)
+- No fraud investigation cost (FraudSense engine does it instantly)
+- No document verification cost
+- Clear trigger = no ambiguous claims
+
+Our **Loss Ratio target: 65-70%** (industry standard for parametric is 55-75%)
+
+### Market Size
+- **TAM**: 11.3M gig delivery workers × ₹44/week = ₹257 crore/week addressable market
+- **SAM**: Q-Commerce workers in top 10 metros = ~800,000 × ₹44 = ₹18.2 crore/week
+- **SOM (Year 1)**: 50,000 workers = ₹1.14 crore/week revenue
+
+### Acquisition Strategy
+- Partner with Zepto/Blinkit dark store managers (they tell their riders)
+- WhatsApp-first onboarding = zero friction
+- First 4 weeks free trial → convert to paid (projected 40% conversion)
+
+---
+
+## 12. Team
 
 | Name | Role |
 |---|---|
-| Ayush Raj Chourasia | Team Leader |
-| Tribhuwan Singh | Member |
-| Satyajit Sethy | Member |
-| Surajit Sahoo | Member |
-| E Sailaja | Member |
+| **Ayush Raj Chourasia** | Team Leader |
+| **Tribhuwan Singh** | Member |
+| **Satyajit Sethy** | Member |
+| **Surajit Sahoo** | Member |
+| **E Sailaja** | Member |
 
 ---
 
-## Hackathon Context
+## Repository Structure
 
-**Competition:** [Guidewire DEVTrails 2026: Unicorn Chase](https://guidewiredevtrails.com/)  
-**Organized by:** Guidewire Software × National Insurance Academy (NIA)  
-**Format:** 45-day virtual startup simulation — build a company, not just code
-
-### The Startup Game
-- Starting Capital: **DC 1,00,000** (DEVTrails Coins)
-- Weekly Burn: DC 5,000 (Seed) → DC 12,000 (Scale) → DC 18,000/week (Soar)
-- Total Mandatory Burn: **DC 75,000** over 6 weeks
-- Bottom 25% of teams eliminated each phase
-- Balance hitting DC 0 = Bankruptcy = Elimination
-
-### Prize Pool: ₹6,00,000
-| Rank | Prize |
-|---|---|
-| 🥇 1st Place | ₹2,50,000 |
-| 🥈 2nd Place | ₹1,50,000 |
-| 🥉 3rd Place | ₹1,00,000 |
-| 🏆 Recognition Award for Excellence | ₹1,00,000 |
-| All Participants | Certificate |
-
-Top 5 teams present live at **DevSummit Bangalore (May 13–16, 2026)** to 40+ tech giants, InsurTech product heads, and 3,000+ industry professionals.
-
----
-
-## Timeline & Phases
-
-| Phase | Dates | Submission Deadline | Weekly Burn |
-|---|---|---|---|
-| 🌱 **Seed** (Phase 1) | March 4 – March 20 | **March 20** | DC 5,000/week |
-| 📈 **Scale** (Phase 2) | March 21 – April 4 | **April 4** | DC 12,000/week |
-| 🚀 **Soar** (Phase 3) | April 5 – April 17 | **April 17** | DC 18,000/week |
-| 🏆 **Grand Finale** | May 13 – 16 | — | DevSummit Bangalore |
-
-### Late Penalty Warning
-| Delay | Seed | Scale | Soar |
-|---|---|---|---|
-| On Time | DC 0 | DC 0 | DC 0 |
-| 1 Day Late | DC 12,000 | DC 20,000 | DC 40,000 |
-| 2 Days Late | DC 15,000 | DC 26,000 | DC 52,000 |
-| 3 Days Late | DC 18,000 | DC 30,000 | DC 60,000 |
-| 3+ Days Late | ❌ ELIMINATED | ❌ ELIMINATED | ❌ ELIMINATED |
-
-> *"Submit broken code on time. Fix it later. Being late is always more expensive than being imperfect."*
+```
+ShramSuraksha/
+├── README.md                    ← You are here
+├── /frontend                    ← React.js PWA
+│   ├── /worker-app              ← Ravi's interface
+│   └── /admin-dashboard         ← Insurer interface
+├── /backend                     ← FastAPI services
+│   ├── /trigger-engine          ← Weather/AQI monitoring
+│   ├── /claim-service           ← Claim lifecycle
+│   ├── /payout-service          ← Razorpay integration
+│   └── /auth-service            ← OTP auth
+├── /ml-models                   ← Python ML
+│   ├── /zone-risk-scorer        ← XGBoost risk model
+│   ├── /activity-classifier     ← Worker activity model
+│   └── /fraud-sense             ← FraudSense engine
+├── /docs                        ← Architecture diagrams
+│   ├── system-architecture.png
+│   ├── fraud-detection-flow.png
+│   └── trigger-flow.png
+└── /data                        ← Synthetic training data
+    ├── synthetic-workers.csv
+    ├── historical-weather-mock.csv
+    └── claim-patterns-mock.csv
+```
 
 ---
 
-<div align="center">
+## Our Promise
 
-**Built with purpose for India's 15 million gig workers.**  
-*Guidewire DEVTrails 2026 | Team Era*
+> India's gig workers built our food delivery economy. They delivered through every monsoon, every wave of heat, every bout of smog. They never got a safety net. 
+>
+> **ShramSuraksha is that safety net. Automatic. Instant. Dignified.**
 
-</div>
+---
+
+*Built with purpose at Guidewire DEVTrails 2026 — Unicorn Chase*
+*"Shram" (श्रम) = Labor. "Suraksha" (सुरक्षा) = Protection.*
+*Every rupee we pay out is a delivery worker's dignity restored.*
