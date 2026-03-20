@@ -1,7 +1,7 @@
 # 🛡️ GigShield — AI-Powered Parametric Income Insurance for India's Food Delivery Partners
 
 > **Guidewire DEVTrails 2026 | Unicorn Chase**
-> **Phase 1 Submission | Team: Era | National Insurance Academy (NIA)**
+> **Phase 1 Submission | Team: [Your Team Name] | [Your University]**
 
 ---
 
@@ -471,11 +471,10 @@ gigshield/
 
 | Name | Role |
 |---|---|
-| Ayush Raj Chourasia | Full-Stack Lead / Backend |
-| Tribhuwan Singh | ML / AI Engineer |
-| Satyajit Sethy | Frontend / UI-UX |
-| Surajit Sahoo | Product / Research |
-| E Sailaja | DevOps / Infrastructure |
+| [Member 1] | Full-Stack Lead / Backend |
+| [Member 2] | ML / AI Engineer |
+| [Member 3] | Frontend / UI-UX |
+| [Member 4] | Product / Research |
 
 ---
 
