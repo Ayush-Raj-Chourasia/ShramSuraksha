@@ -1,4 +1,4 @@
-# 🛡️ GigShield — AI-Powered Parametric Income Insurance for India's Food Delivery Partners
+# 🛡️ ShramSuraksha — Real-Time Parametric Income Protection against Weather Disruptions
 
 > **Guidewire DEVTrails 2026 | Unicorn Chase**
 > **Phase 1 Submission | Team: Era | ITER - SOA University**
@@ -8,7 +8,7 @@
 ## 📌 Table of Contents
 
 1. [Problem Statement](#-problem-statement)
-2. [Our Solution — GigShield](#-our-solution--gigshield)
+2. [Our Solution — ShramSuraksha](#-our-solution--gigshield)
 3. [Persona & Scenario Analysis](#-persona--scenario-analysis)
 4. [Application Workflow](#-application-workflow)
 5. [Weekly Premium Model](#-weekly-premium-model)
@@ -33,20 +33,31 @@ Our research and secondary data analysis reveals:
 - Weather-related disruptions affect delivery operations in Indian metros **40–60 days per year** on average
 - There is **zero formal income protection product** in the market today tailored for this segment
 
-The existing insurance products (health, term life, vehicle insurance) do not address **income loss during uncontrollable parametric events**. GigShield fills this exact gap.
+The existing insurance products (health, term life, vehicle insurance) do not address **income loss during uncontrollable parametric events**. ShramSuraksha fills this exact gap.
 
 ---
 
-## 💡 Our Solution — GigShield
+## 💡 Why we built this our way (Our Opinionated View)
 
-**GigShield (formerly ShramSuraksha)** is an AI-enabled parametric income insurance platform exclusively for **food delivery partners** (Zomato/Swiggy) in Tier-1 and Tier-2 Indian cities.
+When we looked at the problem of gig workers losing income during extreme weather, we realized traditional insurance is completely useless. An insurance form that takes 30 days to process doesn't help a rider whose family needs to eat *tonight* because their city is flooded.
+
+**We threw out claims adjusters entirely.** 
+We built an opinionated, zero-touch platform where **code decides the payout**. By directly consuming IMD and CPCB (Pollution) external data streams, the moment a disruptive threshold is uniquely met in their operational GPS zone, we trigger the micro-payout. 
+
+We also realized annual premiums don't work for workers living paycheck to paycheck. So we architected a **Weekly Premium Model (Micro-Sachets)** that directly overlaps with the Thursday/Friday Zomato/Swiggy settlement cycles. Finally, we deployed our frontend as a Progressive Web App (PWA) configured with offline-caching precisely because network connectivity fails during exact meteorological crises that trigger these policies. This is not a generic AI wrapper; it's a deeply specialized insurtech instrument mathematically contoured for the Indian food-delivery footprint.
+
+---
+
+## 💡 Our Solution — ShramSuraksha
+
+**ShramSuraksha** is an AI-enabled parametric income insurance platform exclusively for **food delivery partners** (Zomato/Swiggy) in Tier-1 and Tier-2 Indian cities.
 
 **Core Value Proposition:**
 > _"Your rain should not be your loss. Get paid when the weather stops you from working."_
 
-### What Makes GigShield Different
+### What Makes ShramSuraksha Different
 
-| Feature | Traditional Insurance | GigShield |
+| Feature | Traditional Insurance | ShramSuraksha |
 |---|---|---|
 | Claims process | Manual, 7–30 days | Fully automated, under 2 hours |
 | Triggers | Human-assessed | Parametric (objective data APIs) |
@@ -71,11 +82,11 @@ We have deliberately narrowed our focus to **food delivery workers** for the fol
 
 ### 🎭 Scenario 1 — Rajan, Bengaluru (Monsoon Flooding)
 
-**Profile:** Rajan, 28, delivers for Swiggy in the Koramangala–HSR Layout corridor. He earns an average of **₹700–₹900/day** on weekdays and **₹1,000–₹1,200 on weekends**. He is enrolled on GigShield's **Standard Plan (₹99/week)**.
+**Profile:** Rajan, 28, delivers for Swiggy in the Koramangala–HSR Layout corridor. He earns an average of **₹700–₹900/day** on weekdays and **₹1,000–₹1,200 on weekends**. He is enrolled on ShramSuraksha's **Standard Plan (₹99/week)**.
 
 **Event:** IMD issues a **Red Alert** for Bengaluru on August 14. Rainfall exceeds 115mm in 24 hours. The Outer Ring Road is flooded. Swiggy suspends operations for the affected zone for **18 hours**.
 
-**GigShield Flow:**
+**ShramSuraksha Flow:**
 1. 🌧️ OpenWeatherMap API detects rainfall > 100mm threshold for Rajan's registered zone
 2. ✅ System cross-validates with IMD alert feed and Swiggy's zone-level suspension signal (mock API)
 3. 📲 Rajan receives a push notification: *"Disruption event detected. Your claim is being processed."*
@@ -86,11 +97,11 @@ We have deliberately narrowed our focus to **food delivery workers** for the fol
 
 ### 🎭 Scenario 2 — Priya, Delhi (Severe Pollution + Odd-Even Restriction)
 
-**Profile:** Priya, 25, delivers for Zomato in South Delhi. She owns a two-wheeler and earns ~₹650/day. Enrolled on GigShield's **Basic Plan (₹59/week)**.
+**Profile:** Priya, 25, delivers for Zomato in South Delhi. She owns a two-wheeler and earns ~₹650/day. Enrolled on ShramSuraksha's **Basic Plan (₹59/week)**.
 
 **Event:** AQI in Delhi crosses **450 (Severe+)** on November 3rd. Delhi government invokes GRAP Stage IV restrictions. Two-wheelers are banned from operating in select zones from 8 AM – 8 PM.
 
-**GigShield Flow:**
+**ShramSuraksha Flow:**
 1. 💨 CPCB AQI feed registers Severe+ level in Priya's registered zone (South Delhi)
 2. 📋 Government-issued GRAP restriction API / web scrape confirms operational ban
 3. 🤖 System calculates 12-hour income loss based on Priya's historical daily earnings
@@ -104,8 +115,8 @@ We have deliberately narrowed our focus to **food delivery workers** for the fol
 
 **Event:** IMD issues a **Cyclone Warning** for coastal Maharashtra on June 9. BMC issues a curfew advisory. Swiggy halts all deliveries in the zone.
 
-**GigShield Flow:**
-1. 🌀 IMD cyclone warning API triggers a **pre-emptive coverage extension** (GigShield's proactive feature)
+**ShramSuraksha Flow:**
+1. 🌀 IMD cyclone warning API triggers a **pre-emptive coverage extension** (ShramSuraksha's proactive feature)
 2. Mohammed's policy is automatically extended for 48-hour coverage at no extra premium
 3. System locks in his income baseline 12 hours before the disruption begins (anti-fraud measure)
 4. Upon event confirmation, **₹1,700 payout** (2 days × 85% daily average) is processed
@@ -116,7 +127,7 @@ We have deliberately narrowed our focus to **food delivery workers** for the fol
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        GIGSHIELD PLATFORM                        │
+│                        SHRAMSURAKSHA PLATFORM                              │
 │                                                                   │
 │  ┌──────────────┐   ┌──────────────┐   ┌──────────────────────┐ │
 │  │  ONBOARDING  │──▶│  POLICY MGT  │──▶│  TRIGGER MONITORING  │ │
@@ -163,7 +174,7 @@ We have deliberately narrowed our focus to **food delivery workers** for the fol
 - Workers can pause or cancel policy mid-week (no pro-rata refund in V1)
 
 **3. Trigger Monitoring (Fully Automated)**
-- GigShield's backend polls 4 external data feeds every 30 minutes
+- ShramSuraksha's backend polls 4 external data feeds every 30 minutes
 - When a threshold is crossed in a worker's registered zone, the claim pipeline is triggered automatically
 - No worker action needed — purely **parametric and zero-touch**
 
@@ -238,7 +249,7 @@ All triggers are **objective, data-driven, and automatically verifiable**. No cl
 | 4 | **Civic Curfew / Strike** | Government advisory scraper (PIB/State Govt feeds) | Confirmed zone-level curfew issued | Access to pickup/drop zones blocked |
 | 5 | **Platform Outage** *(Premium only)* | Swiggy/Zomato status mock API | Platform down > 2 hours during peak (12–2 PM or 7–10 PM) | Worker logged in but zero orders dispatched |
 
-**Important:** GigShield only covers **income loss** caused by these parametric triggers. Vehicle damage, health issues, and personal accidents are explicitly excluded from all plans.
+**Important:** ShramSuraksha only covers **income loss** caused by these parametric triggers. Vehicle damage, health issues, and personal accidents are explicitly excluded from all plans.
 
 ---
 
@@ -406,14 +417,14 @@ For workers with 4+ weeks of history, the actual rolling 28-day average override
 - Guidewire ClaimCenter can manage the parametric claims pipeline at enterprise scale
 - PolicyCenter can handle the weekly policy issuance/renewal lifecycle
 - BillingCenter integrates with UPI AutoPay for the weekly debit cycle
-- GigShield is architected as a **Guidewire-compatible insurance product** from Day 1
+- ShramSuraksha is architected as a **Guidewire-compatible insurance product** from Day 1
 
 ---
 
 ## 📁 Repository Structure
 
 ```
-gigshield/
+ShramSuraksha/
 ├── README.md                    ← This document
 ├── src/                         ← React PWA Frontend
 │   ├── pages/
@@ -457,6 +468,6 @@ gigshield/
 
 ---
 
-> *GigShield is built for the 4 AM rider who has nowhere to go when the city floods. This is not a product. It's a safety net.*
+> *ShramSuraksha is built for the 4 AM rider who has nowhere to go when the city floods. This is not a product. It's a safety net.*
 
 ---
