@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Worker, Policy, Claim, Alert } from '../models.js';
+import { supabase } from '../store.js';
 
 const router = Router();
 
@@ -14,56 +14,50 @@ const TRIGGERS = {
 
 router.get('/triggers', (req, res) => res.json(TRIGGERS));
 
-// Get user's claims
 router.get('/user/:userId', async (req, res) => {
   try {
-    const claims = await Claim.find({ userId: req.params.userId }).sort({ createdAt: -1 }).lean();
-    res.json(claims.map(c => ({ id: c._id, ...c })));
+    const { data: claims } = await supabase.from('claims').select('*').eq('userId', req.params.userId).order('created_at', { ascending: false });
+    res.json(claims || []);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// File a claim
 router.post('/file', async (req, res) => {
   try {
     const { userId, triggerType, triggerValue, location, wasWorking } = req.body;
-    if (!userId || !triggerType) return res.status(400).json({ error: 'userId and triggerType are required' });
+    if (!userId || !triggerType) return res.status(400).json({ error: 'userId and triggerType required' });
 
-    const policy = await Policy.findOne({ userId, status: 'active' });
+    const { data: policy } = await supabase.from('policies').select('*').eq('userId', userId).eq('status', 'active').single();
     if (!policy) return res.status(400).json({ error: 'No active policy found.' });
 
     const trigger = TRIGGERS[triggerType];
-    if (!trigger) return res.status(400).json({ error: 'Invalid trigger type' });
+    if (!trigger) return res.status(400).json({ error: 'Invalid trigger' });
 
-    // Duplicate check (6h window)
-    const sixHoursAgo = new Date(Date.now() - 6 * 3600000);
-    const dup = await Claim.findOne({ userId, triggerType, createdAt: { $gte: sixHoursAgo } });
+    const sixHoursAgo = new Date(Date.now() - 6 * 3600000).toISOString();
+    const { data: dup } = await supabase.from('claims').select('*').eq('userId', userId).eq('triggerType', triggerType).gte('created_at', sixHoursAgo).single();
     if (dup) return res.status(400).json({ error: 'Duplicate claim within 6 hours.', existingClaim: dup });
 
-    const user = await Worker.findById(userId).lean();
+    const { data: user } = await supabase.from('workers').select('*').eq('id', userId).single();
     let fraudScore = 0, fraudFlag = false;
     const fraudReasons = [];
 
-    // Weekly frequency check
-    const weekAgo = new Date(Date.now() - 7 * 86400000);
-    const weekCount = await Claim.countDocuments({ userId, createdAt: { $gte: weekAgo } });
-    if (weekCount >= 5) { fraudScore += 0.3; fraudReasons.push('High claim frequency'); }
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const { count: weekCount } = await supabase.from('claims').select('*', { count: 'exact', head: true }).eq('userId', userId).gte('created_at', weekAgo);
+    if (weekCount >= 5) { fraudScore += 0.3; fraudReasons.push('High frequency'); }
 
-    // GPS check
     if (location && user) {
       const d = Math.sqrt(Math.pow(location.lat - user.gpsLat, 2) + Math.pow(location.lng - user.gpsLng, 2));
-      if (d > 0.5) { fraudScore += 0.4; fraudReasons.push('GPS location anomaly'); }
+      if (d > 0.5) { fraudScore += 0.4; fraudReasons.push('GPS anomaly'); }
     }
     if (fraudScore > 0.5) fraudFlag = true;
 
     let payoutAmount = trigger.payout;
-    const plan = policy.plan;
-    if (plan === 'basic') payoutAmount = Math.round(payoutAmount * 0.6);
-    if (plan === 'premium') payoutAmount = Math.round(payoutAmount * 1.5);
+    if (policy.plan === 'basic') payoutAmount = Math.round(payoutAmount * 0.6);
+    if (policy.plan === 'premium') payoutAmount = Math.round(payoutAmount * 1.5);
 
     const settleTime = Math.floor(Math.random() * 60) + 45;
 
-    const claim = await Claim.create({
-      userId, policyId: policy._id.toString(), triggerType,
+    const { data: claim, error } = await supabase.from('claims').insert({
+      userId, policyId: policy.id, triggerType,
       triggerData: { value: triggerValue || trigger.threshold + Math.random() * 10, unit: trigger.unit, source: trigger.source, threshold: trigger.threshold },
       location: location || { lat: user?.gpsLat, lng: user?.gpsLng, zone: user?.zone, area: user?.city },
       payoutAmount: fraudFlag ? 0 : payoutAmount,
@@ -71,49 +65,45 @@ router.post('/file', async (req, res) => {
       fraudFlag, fraudScore: parseFloat(fraudScore.toFixed(2)), fraudReasons,
       verifiedGPS: !fraudFlag, wasWorking: wasWorking !== false,
       settleTime: fraudFlag ? null : settleTime,
-      settledAt: fraudFlag ? null : new Date(Date.now() + settleTime * 1000),
+      settledAt: fraudFlag ? null : new Date(Date.now() + settleTime * 1000).toISOString(),
       paymentRef: fraudFlag ? null : 'UPI-REF-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
       userName: user?.name, userPlatform: user?.platform,
-    });
+    }).select().single();
+
+    if (error) throw error;
 
     if (!fraudFlag && user) {
-      await Worker.findByIdAndUpdate(userId, { $inc: { totalEarningsProtected: payoutAmount } });
+      await supabase.from('workers').update({ totalEarningsProtected: (user.totalEarningsProtected || 0) + payoutAmount }).eq('id', userId);
     }
 
-    await Alert.create({
-      type: triggerType,
-      title: trigger.source + ' Alert: ' + triggerType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      description: `${trigger.source} detected ${triggerType.replace(/_/g, ' ')} exceeding threshold`,
+    await supabase.from('alerts').insert({
+      type: triggerType, title: trigger.source + ' Alert: ' + triggerType,
+      description: `${trigger.source} detected ${triggerType} threshold exceeded`,
       severity: fraudFlag ? 'fraud' : 'high',
       zone: user?.zone || 'unknown', city: user?.city || 'unknown',
-      triggerValue: triggerValue || trigger.threshold + Math.random() * 10,
+      triggerValue: triggerValue || trigger.threshold + 5,
       threshold: trigger.threshold, payoutTriggered: !fraudFlag,
       payoutAmount: fraudFlag ? 0 : payoutAmount,
     });
 
     res.status(201).json({
-      success: true,
-      claim: { id: claim._id, ...claim.toObject() },
-      message: fraudFlag
-        ? '⚠️ Claim flagged for review.'
-        : `✅ Claim approved! ₹${payoutAmount} credited via UPI in ${settleTime}s.`
+      success: true, claim,
+      message: fraudFlag ? '⚠️ Flagged for review.' : `✅ Approved! ₹${payoutAmount} credited.`
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// All claims (admin)
 router.get('/all', async (req, res) => {
   try {
-    const claims = await Claim.find().sort({ createdAt: -1 }).lean();
-    res.json(claims.map(c => ({ id: c._id, ...c })));
+    const { data: claims } = await supabase.from('claims').select('*').order('created_at', { ascending: false });
+    res.json(claims || []);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Alerts
 router.get('/alerts', async (req, res) => {
   try {
-    const alerts = await Alert.find().sort({ createdAt: -1 }).lean();
-    res.json(alerts.map(a => ({ id: a._id, ...a })));
+    const { data: alerts } = await supabase.from('alerts').select('*').order('created_at', { ascending: false });
+    res.json(alerts || []);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

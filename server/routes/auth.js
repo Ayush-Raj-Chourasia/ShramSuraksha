@@ -1,101 +1,71 @@
 import { Router } from 'express';
-import { Worker, Policy, Claim } from '../models.js';
+import { supabase } from '../store.js';
 
 const router = Router();
 
-// Register
 router.post('/register', async (req, res) => {
   try {
     const { name, phone, platform, city, zone } = req.body;
-    if (!name || !phone || !platform || !city) {
-      return res.status(400).json({ error: 'Name, phone, platform, and city are required' });
-    }
+    if (!name || !phone || !platform || !city) return res.status(400).json({ error: 'Name, phone, platform, and city are required' });
 
-    const existing = await Worker.findOne({ phone });
-    if (existing) {
-      return res.status(400).json({ error: 'Phone number already registered', user: existing });
-    }
+    const { data: existing } = await supabase.from('workers').select('*').eq('phone', phone).single();
+    if (existing) return res.status(400).json({ error: 'Phone number already registered', user: existing });
 
-    const user = await Worker.create({
+    const { data: user, error } = await supabase.from('workers').insert({
       name, phone, platform: platform.toLowerCase(), city,
       zone: zone || 'auto',
       gpsLat: 19.0760 + (Math.random() - 0.5) * 0.1,
       gpsLng: 72.8777 + (Math.random() - 0.5) * 0.1,
       riskScore: Math.floor(Math.random() * 60) + 20,
-    });
+    }).select().single();
 
-    res.status(201).json({
-      success: true,
-      user: { id: user._id, ...user.toObject() },
-      message: 'Registration successful! Welcome to ShramSuraksha.'
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    if (error) throw error;
+    res.status(201).json({ success: true, user, message: 'Registration successful! Welcome to ShramSuraksha.' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Login
 router.post('/login', async (req, res) => {
   try {
     const { phone } = req.body;
-    if (!phone) return res.status(400).json({ error: 'Phone number is required' });
+    if (!phone) return res.status(400).json({ error: 'Phone is required' });
 
-    const user = await Worker.findOne({ phone }).lean();
+    const { data: user } = await supabase.from('workers').select('*').eq('phone', phone).single();
     if (!user) return res.status(404).json({ error: 'User not found. Please register first.' });
 
-    const uid = user._id.toString();
-    const activePolicy = await Policy.findOne({ userId: uid, status: 'active' }).lean();
-    const recentClaims = await Claim.find({ userId: uid }).sort({ createdAt: -1 }).limit(5).lean();
+    const { data: activePolicy } = await supabase.from('policies').select('*').eq('userId', user.id).eq('status', 'active').single();
+    const { data: recentClaims } = await supabase.from('claims').select('*').eq('userId', user.id).order('created_at', { ascending: false }).limit(5);
 
-    res.json({
-      success: true,
-      user: { id: uid, ...user },
-      activePolicy: activePolicy ? { id: activePolicy._id, ...activePolicy } : null,
-      recentClaims,
-      message: `Welcome back, ${user.name}!`
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    res.json({ success: true, user, activePolicy, recentClaims, message: `Welcome back, ${user.name}!` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Get user profile
 router.get('/profile/:userId', async (req, res) => {
   try {
-    const user = await Worker.findById(req.params.userId).lean();
+    const { data: user } = await supabase.from('workers').select('*').eq('id', req.params.userId).single();
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const uid = user._id.toString();
-    const activePolicy = await Policy.findOne({ userId: uid, status: 'active' }).lean();
-    const claims = await Claim.find({ userId: uid }).lean();
-    const totalPaidOut = claims.filter(c => c.status === 'settled').reduce((s, c) => s + (c.payoutAmount || 0), 0);
+    const { data: activePolicy } = await supabase.from('policies').select('*').eq('userId', user.id).eq('status', 'active').single();
+    const { data: claims } = await supabase.from('claims').select('*').eq('userId', user.id);
+    const totalPaidOut = claims?.filter(c => c.status === 'settled').reduce((s, c) => s + (c.payoutAmount || 0), 0) || 0;
 
-    res.json({ user: { id: uid, ...user }, activePolicy, claims, totalPaidOut });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    res.json({ user, activePolicy, claims, totalPaidOut });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Get all workers (admin)
 router.get('/workers', async (req, res) => {
   try {
-    const users = await Worker.find().lean();
-    const policies = await Policy.find().lean();
-    const claims = await Claim.find().lean();
+    const { data: users } = await supabase.from('workers').select('*');
+    const { data: policies } = await supabase.from('policies').select('*');
+    const { data: claims } = await supabase.from('claims').select('*');
 
-    const workers = users.map(u => {
-      const uid = u._id.toString();
-      return {
-        id: uid, ...u,
-        activePolicy: policies.find(p => p.userId === uid && p.status === 'active'),
-        totalClaims: claims.filter(c => c.userId === uid).length,
-        totalPaidOut: claims.filter(c => c.userId === uid && c.status === 'settled').reduce((s, c) => s + (c.payoutAmount || 0), 0)
-      };
-    });
+    const workers = users?.map(u => ({
+      ...u,
+      activePolicy: policies?.find(p => p.userId === u.id && p.status === 'active'),
+      totalClaims: claims?.filter(c => c.userId === u.id).length || 0,
+      totalPaidOut: claims?.filter(c => c.userId === u.id && c.status === 'settled').reduce((s, c) => s + (c.payoutAmount || 0), 0) || 0
+    })) || [];
     res.json(workers);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 export default router;
