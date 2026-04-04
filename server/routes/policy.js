@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { db, generateId } from '../store.js';
+import { Policy, Worker, Claim } from '../models.js';
 
 const router = Router();
 
@@ -9,85 +9,68 @@ const PLANS = {
   premium: { weeklyPremium: 119, dailyCoverage: 1800, weeklyCoverage: 12600, label: 'Premium' }
 };
 
-// Get all plans
-router.get('/plans', (req, res) => {
-  res.json(PLANS);
-});
+router.get('/plans', (req, res) => res.json(PLANS));
 
 // Get user's policies
-router.get('/user/:userId', (req, res) => {
-  const policies = db.policies.filter(p => p.userId === req.params.userId);
-  res.json(policies);
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const policies = await Policy.find({ userId: req.params.userId }).lean();
+    res.json(policies.map(p => ({ id: p._id, ...p })));
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Create/activate a policy
-router.post('/activate', (req, res) => {
+// Activate a policy
+router.post('/activate', async (req, res) => {
   try {
     const { userId, plan, aiPremium } = req.body;
-    
-    if (!userId || !plan) {
-      return res.status(400).json({ error: 'userId and plan are required' });
-    }
-    
+    if (!userId || !plan) return res.status(400).json({ error: 'userId and plan are required' });
+
     const planData = PLANS[plan];
-    if (!planData) {
-      return res.status(400).json({ error: 'Invalid plan. Choose: basic, standard, premium' });
-    }
-    
-    // Deactivate any existing active policy
-    db.policies.forEach(p => {
-      if (p.userId === userId && p.status === 'active') {
-        p.status = 'expired';
-      }
-    });
-    
+    if (!planData) return res.status(400).json({ error: 'Invalid plan' });
+
+    // Deactivate existing
+    await Policy.updateMany({ userId, status: 'active' }, { status: 'expired' });
+
     const now = new Date();
-    const endDate = new Date(now.getTime() + 7 * 86400000);
-    
-    const policy = {
-      id: generateId('policy-'),
-      userId,
-      plan,
+    const policy = await Policy.create({
+      userId, plan,
       weeklyPremium: aiPremium || planData.weeklyPremium,
       dailyCoverage: planData.dailyCoverage,
       weeklyCoverage: planData.weeklyCoverage,
-      startDate: now.toISOString(),
-      endDate: endDate.toISOString(),
-      status: 'active',
+      startDate: now,
+      endDate: new Date(now.getTime() + 7 * 86400000),
       autoRenew: true,
       aiRecommended: !!aiPremium,
-      riskFactors: [],
-      createdAt: now.toISOString()
-    };
-    
-    db.policies.push(policy);
-    
-    res.status(201).json({ 
-      success: true, 
-      policy,
+    });
+
+    res.status(201).json({
+      success: true,
+      policy: { id: policy._id, ...policy.toObject() },
       message: `${planData.label} plan activated! You're protected for 7 days.`
     });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Deactivate a policy
-router.post('/deactivate/:policyId', (req, res) => {
-  const policy = db.policies.find(p => p.id === req.params.policyId);
-  if (!policy) return res.status(404).json({ error: 'Policy not found' });
-  
-  policy.status = 'cancelled';
-  res.json({ success: true, policy });
+// Deactivate
+router.post('/deactivate/:policyId', async (req, res) => {
+  try {
+    const policy = await Policy.findByIdAndUpdate(req.params.policyId, { status: 'cancelled' }, { new: true });
+    if (!policy) return res.status(404).json({ error: 'Policy not found' });
+    res.json({ success: true, policy });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Get all active policies (admin)
-router.get('/all', (req, res) => {
-  const policies = db.policies.map(p => {
-    const user = db.users.find(u => u.id === p.userId);
-    return { ...p, userName: user?.name, userPhone: user?.phone, userPlatform: user?.platform };
-  });
-  res.json(policies);
+// All policies (admin)
+router.get('/all', async (req, res) => {
+  try {
+    const policies = await Policy.find().lean();
+    const workers = await Worker.find().lean();
+    const result = policies.map(p => {
+      const user = workers.find(u => u._id.toString() === p.userId);
+      return { id: p._id, ...p, userName: user?.name, userPhone: user?.phone, userPlatform: user?.platform };
+    });
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 export default router;

@@ -1,76 +1,56 @@
 import { Router } from 'express';
-import { db, generateId } from '../store.js';
+import { Worker, Policy, Claim } from '../models.js';
 
 const router = Router();
 
-// Register new worker
-router.post('/register', (req, res) => {
+// Register
+router.post('/register', async (req, res) => {
   try {
     const { name, phone, platform, city, zone } = req.body;
-    
     if (!name || !phone || !platform || !city) {
       return res.status(400).json({ error: 'Name, phone, platform, and city are required' });
     }
-    
-    // Check if phone already exists
-    const existing = db.users.find(u => u.phone === phone);
+
+    const existing = await Worker.findOne({ phone });
     if (existing) {
       return res.status(400).json({ error: 'Phone number already registered', user: existing });
     }
-    
-    const user = {
-      id: generateId('user-'),
-      name,
-      phone,
-      platform: platform.toLowerCase(),
-      city,
+
+    const user = await Worker.create({
+      name, phone, platform: platform.toLowerCase(), city,
       zone: zone || 'auto',
       gpsLat: 19.0760 + (Math.random() - 0.5) * 0.1,
       gpsLng: 72.8777 + (Math.random() - 0.5) * 0.1,
-      createdAt: new Date().toISOString(),
       riskScore: Math.floor(Math.random() * 60) + 20,
-      totalEarningsProtected: 0
-    };
-    
-    db.users.push(user);
-    
-    res.status(201).json({ 
-      success: true, 
-      user,
-      message: 'Registration successful! Welcome to ShramSuraksha.' 
+    });
+
+    res.status(201).json({
+      success: true,
+      user: { id: user._id, ...user.toObject() },
+      message: 'Registration successful! Welcome to ShramSuraksha.'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Login (simplified - phone based)
-router.post('/login', (req, res) => {
+// Login
+router.post('/login', async (req, res) => {
   try {
     const { phone } = req.body;
-    
-    if (!phone) {
-      return res.status(400).json({ error: 'Phone number is required' });
-    }
-    
-    const user = db.users.find(u => u.phone === phone);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found. Please register first.' });
-    }
-    
-    // Get active policy
-    const activePolicy = db.policies.find(p => p.userId === user.id && p.status === 'active');
-    
-    // Get recent claims
-    const recentClaims = db.claims
-      .filter(c => c.userId === user.id)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 5);
-    
-    res.json({ 
-      success: true, 
-      user,
-      activePolicy,
+    if (!phone) return res.status(400).json({ error: 'Phone number is required' });
+
+    const user = await Worker.findOne({ phone }).lean();
+    if (!user) return res.status(404).json({ error: 'User not found. Please register first.' });
+
+    const uid = user._id.toString();
+    const activePolicy = await Policy.findOne({ userId: uid, status: 'active' }).lean();
+    const recentClaims = await Claim.find({ userId: uid }).sort({ createdAt: -1 }).limit(5).lean();
+
+    res.json({
+      success: true,
+      user: { id: uid, ...user },
+      activePolicy: activePolicy ? { id: activePolicy._id, ...activePolicy } : null,
       recentClaims,
       message: `Welcome back, ${user.name}!`
     });
@@ -80,26 +60,42 @@ router.post('/login', (req, res) => {
 });
 
 // Get user profile
-router.get('/profile/:userId', (req, res) => {
-  const user = db.users.find(u => u.id === req.params.userId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
-  
-  const activePolicy = db.policies.find(p => p.userId === user.id && p.status === 'active');
-  const claims = db.claims.filter(c => c.userId === user.id);
-  const totalPaidOut = claims.filter(c => c.status === 'settled').reduce((s, c) => s + (c.payoutAmount || 0), 0);
-  
-  res.json({ user, activePolicy, claims, totalPaidOut });
+router.get('/profile/:userId', async (req, res) => {
+  try {
+    const user = await Worker.findById(req.params.userId).lean();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const uid = user._id.toString();
+    const activePolicy = await Policy.findOne({ userId: uid, status: 'active' }).lean();
+    const claims = await Claim.find({ userId: uid }).lean();
+    const totalPaidOut = claims.filter(c => c.status === 'settled').reduce((s, c) => s + (c.payoutAmount || 0), 0);
+
+    res.json({ user: { id: uid, ...user }, activePolicy, claims, totalPaidOut });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Get all workers (admin)
-router.get('/workers', (req, res) => {
-  const workers = db.users.map(u => ({
-    ...u,
-    activePolicy: db.policies.find(p => p.userId === u.id && p.status === 'active'),
-    totalClaims: db.claims.filter(c => c.userId === u.id).length,
-    totalPaidOut: db.claims.filter(c => c.userId === u.id && c.status === 'settled').reduce((s, c) => s + (c.payoutAmount || 0), 0)
-  }));
-  res.json(workers);
+router.get('/workers', async (req, res) => {
+  try {
+    const users = await Worker.find().lean();
+    const policies = await Policy.find().lean();
+    const claims = await Claim.find().lean();
+
+    const workers = users.map(u => {
+      const uid = u._id.toString();
+      return {
+        id: uid, ...u,
+        activePolicy: policies.find(p => p.userId === uid && p.status === 'active'),
+        totalClaims: claims.filter(c => c.userId === uid).length,
+        totalPaidOut: claims.filter(c => c.userId === uid && c.status === 'settled').reduce((s, c) => s + (c.payoutAmount || 0), 0)
+      };
+    });
+    res.json(workers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;
