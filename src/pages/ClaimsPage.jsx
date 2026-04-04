@@ -1,48 +1,54 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CloudRain, Wind, Thermometer, AlertTriangle, Check, X, Clock, MapPin, Zap, CheckCircle2, Wifi } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getUserClaims, fileClaim, getWeather, getAQI, getTriggers } from '../api';
+import { getUserClaims, fileClaim, getWeather, getAQI } from '../api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export default function ClaimsPage({ user, policy }) {
   const navigate = useNavigate();
-  const [claims, setClaims] = useState([]);
+  const queryClient = useQueryClient();
   const [view, setView] = useState('list');
-  const [weather, setWeather] = useState(null);
-  const [aqi, setAqi] = useState(null);
-  const [activeTriggers, setActiveTriggers] = useState([]);
-  const [selectedTrigger, setSelectedTrigger] = useState(null);
-  const [filing, setFiling] = useState(false);
   const [result, setResult] = useState(null);
 
-  useEffect(() => {
-    if (!user) { navigate('/auth'); return; }
-    loadData();
-  }, [user]);
+  if (!user) {
+    navigate('/auth');
+    return null;
+  }
 
-  const loadData = async () => {
-    try {
-      const [c, w, a] = await Promise.allSettled([
-        getUserClaims(user.id),
+  // React Query: Fetch Claims
+  const { data: claimsData } = useQuery({
+    queryKey: ['claims', user.id],
+    queryFn: async () => {
+      const res = await getUserClaims(user.id);
+      return res.data;
+    },
+    enabled: !!user.id,
+    refetchInterval: 15000, // Poll every 15s to simulate real-time fallbacks
+  });
+  const claims = claimsData || [];
+
+  // React Query: Fetch Weather & AQI Triggers
+  const { data: triggersData } = useQuery({
+    queryKey: ['triggers', user.city],
+    queryFn: async () => {
+      const [w, a] = await Promise.allSettled([
         getWeather(user.city || 'Mumbai'),
         getAQI(user.city || 'Mumbai')
       ]);
-      if (c.status === 'fulfilled') setClaims(c.value.data);
-      if (w.status === 'fulfilled') {
-        setWeather(w.value.data);
-        if (w.value.data.triggers) setActiveTriggers(prev => [...prev, ...w.value.data.triggers]);
-      }
-      if (a.status === 'fulfilled') {
-        setAqi(a.value.data);
-        if (a.value.data.triggers) setActiveTriggers(prev => [...prev, ...a.value.data.triggers]);
-      }
-    } catch (e) { console.error(e); }
-  };
+      const triggers = [];
+      if (w.status === 'fulfilled' && w.value.data.triggers) triggers.push(...w.value.data.triggers);
+      if (a.status === 'fulfilled' && a.value.data.triggers) triggers.push(...a.value.data.triggers);
+      return triggers;
+    },
+    enabled: !!user.city,
+    staleTime: 5 * 60 * 1000, 
+  });
+  const activeTriggers = triggersData || [];
 
-  const handleFileClaim = async (triggerType, triggerValue) => {
-    if (!policy) { alert('Please activate a plan first'); navigate('/plans'); return; }
-    setFiling(true);
-    try {
+  // React Query: Optimistic Mutation for filing claims
+  const fileClaimMutation = useMutation({
+    mutationFn: async ({ triggerType, triggerValue }) => {
       const res = await fileClaim({
         userId: user.id,
         triggerType,
@@ -50,16 +56,42 @@ export default function ClaimsPage({ user, policy }) {
         location: { lat: user.gpsLat, lng: user.gpsLng, zone: user.zone, area: user.city },
         wasWorking: true
       });
-      setResult(res.data);
-      setView('result');
-      loadData();
-    } catch (e) {
-      alert(e.response?.data?.error || 'Claim failed');
-    }
-    setFiling(false);
-  };
+      return res.data;
+    },
+    onMutate: async (newClaim) => {
+      // Optimistic UI Update
+      await queryClient.cancelQueries({ queryKey: ['claims', user.id] });
+      const previousClaims = queryClient.getQueryData(['claims', user.id]);
+      
+      const optimisticClaim = {
+        id: 'temp-' + Date.now(),
+        triggerType: newClaim.triggerType,
+        status: 'pending',
+        payoutAmount: 0,
+        createdAt: new Date().toISOString(),
+        location: { area: user.city }
+      };
 
-  if (!user) return null;
+      queryClient.setQueryData(['claims', user.id], old => [optimisticClaim, ...(old || [])]);
+      return { previousClaims };
+    },
+    onError: (err, newClaim, context) => {
+      queryClient.setQueryData(['claims', user.id], context.previousClaims);
+      alert(err.response?.data?.error || 'Claim failed. We have reverted the UI state.');
+    },
+    onSuccess: (data) => {
+      setResult(data);
+      setView('result');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['claims', user.id] });
+    }
+  });
+
+  const handleFileClaim = (triggerType, triggerValue) => {
+    if (!policy) { alert('Please activate a plan first'); navigate('/plans'); return; }
+    fileClaimMutation.mutate({ triggerType, triggerValue });
+  };
 
   const triggerTypes = [
     { type: 'heavy_rainfall', icon: <CloudRain size={20} />, label: 'Heavy Rainfall', threshold: '> 30mm/hr', color: 'var(--primary)', bg: 'var(--primary-bg)' },
@@ -86,28 +118,6 @@ export default function ClaimsPage({ user, policy }) {
               : <>Credited via UPI in <span style={{ color: 'var(--success)', fontWeight: 600 }}>{result.claim?.settleTime}s</span></>
             }
           </p>
-
-          {!result.claim?.fraudFlag && (
-            <div className="card" style={{ padding: 24, textAlign: 'left', marginBottom: 24 }}>
-              <div className="timeline">
-                {[
-                  { label: 'Trigger Detected', desc: `${result.claim?.triggerData?.source} verified ${result.claim?.triggerData?.value?.toFixed?.(1) || ''}${result.claim?.triggerData?.unit}`, time: new Date(result.claim?.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }), done: true },
-                  { label: 'Claim Verified', desc: 'GPS confirmed · Fraud score: ' + result.claim?.fraudScore, time: '', done: true },
-                  { label: 'Paid', desc: `${result.claim?.paymentRef}`, time: '', done: true },
-                ].map((s, i) => (
-                  <div key={i} className="timeline-item">
-                    <div className="timeline-dot timeline-dot-success" />
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 14, fontWeight: 600 }}>{s.label}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{s.time}</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>{s.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           <button className="btn btn-primary btn-full" onClick={() => { setView('list'); setResult(null); }}>Done</button>
         </motion.div>
       </div>
@@ -133,8 +143,8 @@ export default function ClaimsPage({ user, policy }) {
           {triggerTypes.map((t, i) => {
             const isActive = activeTriggers.some(at => at.type === t.type);
             return (
-              <div key={i} className="card card-interactive card-hover" style={{ padding: 18, display: 'flex', gap: 14, alignItems: 'center' }}
-                onClick={() => handleFileClaim(t.type, isActive ? activeTriggers.find(at => at.type === t.type)?.value : t.threshold.match(/\d+/)?.[0])}>
+              <div key={i} className="card card-interactive card-hover" style={{ padding: 18, display: 'flex', gap: 14, alignItems: 'center', opacity: fileClaimMutation.isPending ? 0.6 : 1, cursor: fileClaimMutation.isPending ? 'not-allowed' : 'pointer' }}
+                onClick={() => !fileClaimMutation.isPending && handleFileClaim(t.type, isActive ? activeTriggers.find(at => at.type === t.type)?.value : t.threshold.match(/\d+/)?.[0])}>
                 <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', background: t.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.color, flexShrink: 0 }}>
                   {t.icon}
                 </div>
@@ -151,7 +161,7 @@ export default function ClaimsPage({ user, policy }) {
         </div>
       </motion.div>
 
-      {/* Offline Notice */}
+      {/* Offline Notice - PWA Ready */}
       <motion.div className="card" style={{ padding: '14px 18px', display: 'flex', gap: 12, alignItems: 'center', marginTop: 20, background: 'var(--warning-bg)', borderColor: 'var(--warning-border)' }}
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <Wifi size={18} color="var(--warning)" />
@@ -167,7 +177,7 @@ export default function ClaimsPage({ user, policy }) {
           <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-tertiary)', marginBottom: 16 }}>CLAIM HISTORY</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {claims.map((c, i) => (
-              <div key={i} className="card" style={{ padding: 18, display: 'flex', gap: 16, alignItems: 'center' }}>
+              <div key={c.id || i} className={`card ${c.id?.startsWith('temp') ? 'opacity-80' : ''}`} style={{ padding: 18, display: 'flex', gap: 16, alignItems: 'center' }}>
                 <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', background: c.status === 'settled' ? 'var(--success-bg)' : c.fraudFlag ? 'var(--danger-bg)' : 'var(--warning-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {c.status === 'settled' ? <CheckCircle2 size={20} color="var(--success)" /> : c.fraudFlag ? <AlertTriangle size={20} color="var(--danger)" /> : <Clock size={20} color="var(--warning)" />}
                 </div>
