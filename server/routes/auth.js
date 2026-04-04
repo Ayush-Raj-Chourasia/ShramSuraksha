@@ -29,7 +29,28 @@ router.post('/login', async (req, res) => {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ error: 'Phone is required' });
 
-    const { data: user } = await supabase.from('workers').select('*').eq('phone', phone).single();
+    let { data: user, error: userError } = await supabase.from('workers').select('*').eq('phone', phone).single();
+    
+    // Auto-seed for the demo user if not found
+    if (!user && phone === '9876543210') {
+      console.log('Seeding demo user into Supabase...');
+      const { data: newUser, error: createError } = await supabase.from('workers').insert({
+        name: 'Rahul Sharma', phone: '9876543210', platform: 'swiggy', city: 'Mumbai',
+        zone: '4B', gpsLat: 19.0760, gpsLng: 72.8777, riskScore: 35
+      }).select().single();
+      
+      if (!createError && newUser) {
+        user = newUser;
+        // Auto-seed an active policy
+        await supabase.from('policies').insert({
+          userId: user.id, plan: 'standard', status: 'active',
+          weeklyPremium: 59, dailyCoverage: 850, weeklyCoverage: 5950,
+          startDate: new Date().toISOString(),
+          endDate: new Date(Date.now() + 7 * 86400000).toISOString()
+        });
+      }
+    }
+
     if (!user) return res.status(404).json({ error: 'User not found. Please register first.' });
 
     const { data: activePolicy } = await supabase.from('policies').select('*').eq('userId', user.id).eq('status', 'active').single();
