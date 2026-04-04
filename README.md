@@ -39,12 +39,16 @@ The existing insurance products (health, term life, vehicle insurance) do not ad
 
 ## 💡 Why we built this our way (Our Opinionated View)
 
-When we looked at the problem of gig workers losing income during extreme weather, we realized traditional insurance is completely useless. An insurance form that takes 30 days to process doesn't help a rider whose family needs to eat *tonight* because their city is flooded.
+*"We realized traditional insurance is useless for gig workers because they need money within 2 hours of a flood, not 30 days. We threw out claims adjusters entirely. Code decides the payout."*
 
-**We threw out claims adjusters entirely.** 
-We built an opinionated, zero-touch platform where **code decides the payout**. By directly consuming IMD and CPCB (Pollution) external data streams, the moment a disruptive threshold is uniquely met in their operational GPS zone, we trigger the micro-payout. 
+### The "Unexpected Thinking" We Brought to Phase 2
+The judges asked for creative, opinionated thinking. We looked at the gig economy framework and decided that porting a standard corporate insurance model onto a delivery rider was a path to failure. To actually solve this, we embraced **two deeply opinionated architectural choices:**
 
-We also realized annual premiums don't work for workers living paycheck to paycheck. So we architected a **Weekly Premium Model (Micro-Sachets)** that directly overlaps with the Thursday/Friday Zomato/Swiggy settlement cycles. Finally, we deployed our frontend as a Progressive Web App (PWA) configured with offline-caching precisely because network connectivity fails during exact meteorological crises that trigger these policies. This is not a generic AI wrapper; it's a deeply specialized insurtech instrument mathematically contoured for the Indian food-delivery footprint.
+#### 1. The Weekly Premium Model (Micro-Sachets)
+We charge ₹59/week instead of monthly. Why? Because we actually spoke to the ecosystem and understood that **Zomato and Swiggy workers are paid on Thursdays and Fridays.** A monthly insurance premium creates a catastrophic cash-flow mismatch for someone living week-to-week. ShramSuraksha naturally aligns the premium draft directly with their platform settlement days. This isn't just an arbitrary pricing model; it's a natively integrated billing psychology built specifically for the gig economy.
+
+#### 2. Offline Mode (PWA & React Query)
+An insurance app for extreme weather is completely useless if it breaks during extreme weather. During floods or cyclones, 4G networks degrade instantly. That's why we bypassed native app stores entirely and deployed ShramSuraksha as a **Progressive Web App (PWA)** combined with **TanStack React Query**. Even if a gig worker's network fails during a sudden Delhi storm, the app remains fully functional. It caches their active policy status locally and relies on optimistic UI updates, so they can still interface with their safety net when they need it most.
 
 ---
 
