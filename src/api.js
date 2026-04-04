@@ -1,0 +1,44 @@
+import axios from 'axios';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+const api = axios.create({
+  baseURL: API_BASE + '/api',
+  timeout: 15000,
+  headers: { 'Content-Type': 'application/json' }
+});
+
+// Auth
+export const registerWorker = (data) => api.post('/auth/register', data);
+export const loginWorker = (phone) => api.post('/auth/login', { phone });
+export const getProfile = (userId) => api.get(`/auth/profile/${userId}`);
+export const getAllWorkers = () => api.get('/auth/workers');
+
+// Policies
+export const getPlans = () => api.get('/policies/plans');
+export const getUserPolicies = (userId) => api.get(`/policies/user/${userId}`);
+export const activatePolicy = (data) => api.post('/policies/activate', data);
+export const getAllPolicies = () => api.get('/policies/all');
+
+// Claims
+export const getUserClaims = (userId) => api.get(`/claims/user/${userId}`);
+export const fileClaim = (data) => api.post('/claims/file', data);
+export const getAllClaims = () => api.get('/claims/all');
+export const getAlerts = () => api.get('/claims/alerts');
+export const getTriggers = () => api.get('/claims/triggers');
+
+// Weather
+export const getWeather = (city) => api.get(`/weather/current/${city}`);
+export const getAQI = (city) => api.get(`/weather/aqi/${city}`);
+export const getForecast = (city) => api.get(`/weather/forecast/${city}`);
+
+// AI
+export const calculatePremium = (data) => api.post('/ai/calculate-premium', data);
+export const fraudCheck = (data) => api.post('/ai/fraud-check', data);
+export const riskAssessment = (data) => api.post('/ai/risk-assessment', data);
+
+// Stats
+export const getStats = () => api.get('/stats');
+export const getHealth = () => api.get('/health');
+
+export default api;
