@@ -40,7 +40,12 @@ export default function Navbar({ user, setUser }) {
           </>
         ) : (
           <>
-            <Link to="/" className={`nav-link ${isActive('/')}`}>Home</Link>
+            <a href="#features" className={`nav-link`} onClick={(e) => {
+              if (location.pathname !== '/') { e.preventDefault(); navigate('/#features'); }
+            }}>Features</a>
+            <a href="#how-it-works" className={`nav-link`} onClick={(e) => {
+              if (location.pathname !== '/') { e.preventDefault(); navigate('/#how-it-works'); }
+            }}>How It Works</a>
             <Link to="/auth" className="nav-btn nav-btn-primary">Get Protected →</Link>
           </>
         )}

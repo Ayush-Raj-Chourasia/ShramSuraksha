@@ -161,7 +161,7 @@ export default function LandingPage({ user }) {
       </section>
 
       {/* Features */}
-      <section className="section">
+      <section id="features" className="section">
         <motion.div style={{ textAlign: 'center' }} {...fadeUp}>
           <div className="section-label">{t.hwLabel}</div>
           <h2 className="section-title" style={{ maxWidth: 500, margin: '0 auto 8px' }}>
@@ -191,7 +191,7 @@ export default function LandingPage({ user }) {
       </section>
 
       {/* How it works steps */}
-      <section style={{ padding: '40px 32px 80px', background: 'var(--white)' }}>
+      <section id="how-it-works" style={{ padding: '40px 32px 80px', background: 'var(--white)' }}>
         <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
           <motion.div {...fadeUp}>
             <div className="section-label">{t.flowLabel}</div>
