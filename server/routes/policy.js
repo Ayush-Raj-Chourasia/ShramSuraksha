@@ -32,22 +32,35 @@ router.post('/activate', async (req, res) => {
     // Deactivate existing
     await Policy.updateMany({ userId, status: 'active' }, { status: 'expired' });
 
+    // Look up worker for city tier
+    const worker = await Worker.findById(userId).lean();
+    const tierInfo = getCityTier(worker?.city || 'Mumbai');
+
+    // Adjust premium by city tier (Tier-1 pays a slightly higher premium due to higher coverage)
+    const tierPremiumMod = tierInfo.premiumMod || 1.0;
+    const finalPremium = aiPremium || Math.round(planData.weeklyPremium * tierPremiumMod);
+
     const now = new Date();
     const policy = await Policy.create({
       userId, plan,
-      weeklyPremium: aiPremium || planData.weeklyPremium,
+      weeklyPremium: finalPremium,
       dailyCoverage: planData.dailyCoverage,
       weeklyCoverage: planData.weeklyCoverage,
       startDate: now,
       endDate: new Date(now.getTime() + 7 * 86400000),
       autoRenew: true,
       aiRecommended: !!aiPremium,
+      cityTier: tierInfo.tier,
+      tierMultiplier: tierInfo.multiplier,
     });
 
     res.status(201).json({
       success: true,
       policy: { id: policy._id, ...policy.toObject() },
-      message: `${planData.label} plan activated! You're protected for 7 days.`
+      tierInfo,
+      message: `${planData.label} plan activated for ${tierInfo.label} city! Income-linked coverage: ₹${Math.round(
+        (worker?.declaredIncome || 750) * 0.5 * tierInfo.multiplier
+      )}/event. Protected for 7 days.`
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
