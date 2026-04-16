@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { Policy, Worker, Claim } from '../models.js';
+import { getCityTier } from '../models.js';
 
 const router = Router();
 
 const PLANS = {
-  basic: { weeklyPremium: 29, dailyCoverage: 300, weeklyCoverage: 2100, label: 'Basic' },
-  standard: { weeklyPremium: 59, dailyCoverage: 850, weeklyCoverage: 5950, label: 'Standard' },
-  premium: { weeklyPremium: 119, dailyCoverage: 1800, weeklyCoverage: 12600, label: 'Premium' }
+  basic:    { weeklyPremium: 29,  dailyCoverage: 300,  weeklyCoverage: 2100,  label: 'Basic' },
+  standard: { weeklyPremium: 59,  dailyCoverage: 850,  weeklyCoverage: 5950,  label: 'Standard' },
+  premium:  { weeklyPremium: 119, dailyCoverage: 1800, weeklyCoverage: 12600, label: 'Premium' },
 };
 
 router.get('/plans', (req, res) => res.json(PLANS));
