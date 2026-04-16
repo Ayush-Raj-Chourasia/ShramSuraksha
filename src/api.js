@@ -45,5 +45,6 @@ export const getMonitorStatus = () => api.get('/ai/monitor-status');
 // ── Stats ────────────────────────────────────────────────────────────────
 export const getStats = () => api.get('/stats');
 export const getHealth = () => api.get('/health');
+export const getLogs = (params = {}) => api.get('/logs', { params });
 
 export default api;
