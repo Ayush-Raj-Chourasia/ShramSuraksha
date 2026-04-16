@@ -337,6 +337,103 @@ export default function AdminPage() {
           </tbody>
         </table>
       </motion.div>
+
+      {/* ── Live Activity Log ──────────────────────────────────────────── */}
+      <motion.div className="card" style={{ padding: 24, marginTop: 24 }}
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-tertiary)', marginBottom: 6 }}>📋 LIVE ACTIVITY LOG</p>
+            {logSummary && (
+              <div style={{ display: 'flex', gap: 16 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Total: <strong>{logSummary.totalLogs}</strong></span>
+                <span style={{ fontSize: 12, color: 'var(--primary)' }}>Today: <strong>{logSummary.todayLogs}</strong></span>
+                <span style={{ fontSize: 12, color: 'var(--danger)' }}>Errors: <strong>{logSummary.errorLogs}</strong></span>
+                <span style={{ fontSize: 12, color: '#8B5CF6' }}>Active Users: <strong>{logSummary.uniqueActiveUsers}</strong></span>
+              </div>
+            )}
+          </div>
+          <button onClick={refreshLogs} className="btn btn-secondary" style={{ padding: '6px 14px', fontSize: 12 }}>
+            🔄 Refresh
+          </button>
+        </div>
+
+        {/* Filter tabs */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+          {['all', 'auth', 'claim', 'policy', 'weather', 'ai', 'error'].map(f => (
+            <button key={f} onClick={() => { setLogFilter(f); setTimeout(refreshLogs, 0); }}
+              style={{ padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                background: logFilter === f ? 'var(--primary)' : 'var(--bg-secondary)',
+                color: logFilter === f ? 'white' : 'var(--text-secondary)',
+                fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s' }}>
+              {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Log table */}
+        <div style={{ overflowX: 'auto', maxHeight: 400, overflowY: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead style={{ position: 'sticky', top: 0, background: 'white', zIndex: 1 }}>
+              <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                {['Time', 'Action', 'User', 'Category', 'Status', 'Duration', 'IP', 'City'].map(h => (
+                  <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--text-tertiary)', fontSize: 10, letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {activityLogs.length === 0 ? (
+                <tr><td colSpan={8} style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)' }}>No activity logged yet — actions appear here in real-time</td></tr>
+              ) : activityLogs.map((log, i) => {
+                const actionColors = {
+                  WORKER_REGISTERED: '#059669', WORKER_LOGIN: '#4F46E5',
+                  OTP_SENT: '#8B5CF6', OTP_VERIFIED: '#0D9488',
+                  CLAIM_FILED: '#D97706', POLICY_ACTIVATED: '#059669',
+                  ADMIN_VIEWED_CLAIMS: '#64748B', PREMIUM_CALCULATED: '#4F46E5',
+                };
+                const actionColor = actionColors[log.action] || '#64748B';
+                const isError = log.status === 'failure';
+                return (
+                  <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: isError ? 'rgba(220,38,38,0.02)' : 'transparent' }}>
+                    <td style={{ padding: '8px 10px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                      {new Date(log.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </td>
+                    <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: 20, background: `${actionColor}15`, color: actionColor, fontWeight: 700, fontSize: 10 }}>
+                        {log.action}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 10px', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {log.userName || log.userId?.slice(-8) || '—'}
+                    </td>
+                    <td style={{ padding: '8px 10px' }}>
+                      <span style={{ textTransform: 'uppercase', fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)' }}>{log.category}</span>
+                    </td>
+                    <td style={{ padding: '8px 10px' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: isError ? 'var(--danger)' : 'var(--success)' }}>
+                        {isError ? '✗ FAIL' : '✓ OK'}
+                      </span>
+                      {isError && log.errorMessage && (
+                        <div style={{ fontSize: 10, color: 'var(--danger)', marginTop: 2, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {log.errorMessage}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: '8px 10px', color: log.durationMs > 2000 ? 'var(--warning)' : 'var(--text-tertiary)' }}>
+                      {log.durationMs}ms
+                    </td>
+                    <td style={{ padding: '8px 10px', color: 'var(--text-tertiary)', fontFamily: 'monospace', fontSize: 10 }}>
+                      {log.ip?.slice(0, 15) || '—'}
+                    </td>
+                    <td style={{ padding: '8px 10px', color: 'var(--text-secondary)' }}>{log.city || '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </motion.div>
     </div>
   );
 }
