@@ -1,8 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
-import { Bell } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
@@ -12,13 +9,6 @@ import ClaimsPage from './pages/ClaimsPage';
 import AlertsPage from './pages/AlertsPage';
 import AdminPage from './pages/AdminPage';
 import './App.css';
-
-const enableRealtime = import.meta.env.VITE_ENABLE_SUPABASE_REALTIME === 'true';
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = enableRealtime && supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -33,7 +23,6 @@ export default function App() {
       return saved ? JSON.parse(saved) : null;
     } catch(e) { return null; }
   });
-  const [toaast, setToast] = useState(null);
 
   useEffect(() => {
     if (user) localStorage.setItem('shram_user', JSON.stringify(user));
@@ -45,61 +34,9 @@ export default function App() {
     else localStorage.removeItem('shram_policy');
   }, [policy]);
 
-  useEffect(() => {
-    if (!supabase) return undefined;
-
-    let channel;
-    try {
-      // Subscribe to entire database changes (alerts) for realtime push
-      channel = supabase.channel('realtime-alerts')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts' }, payload => {
-          setToast({
-            title: payload.new.title || 'New Alert',
-            desc: payload.new.description || 'Threshold exceeded',
-            type: payload.new.severity === 'fraud' ? 'danger' : 'warning'
-          });
-          setTimeout(() => setToast(null), 6000);
-        })
-        .subscribe((status) => {
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.warn('Supabase realtime failed to connect. Disabling live push to save resources.');
-            supabase.removeChannel(channel);
-          }
-        });
-    } catch(e) {}
-
-    return () => {
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [supabase]);
-
   return (
     <div className="app-root">
       <Navbar user={user} setUser={setUser} />
-      
-      {/* Realtime Toast Notification */}
-      <AnimatePresence>
-        {toaast && (
-          <motion.div 
-            initial={{ opacity: 0, y: -50, x: '-50%' }}
-            animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: -50, x: '-50%' }}
-            style={{
-               position: 'fixed', top: 80, left: '50%', zIndex: 9999,
-               background: toaast.type === 'danger' ? 'var(--danger-bg)' : 'var(--warning-bg)',
-               border: `1px solid ${toaast.type === 'danger' ? 'var(--danger)' : 'var(--warning)'}`,
-               padding: '16px 24px', borderRadius: 12, display: 'flex', gap: 12, alignItems: 'center',
-               boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
-            }}
-          >
-            <Bell size={24} color={toaast.type === 'danger' ? 'var(--danger)' : 'var(--warning)'} />
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{toaast.title}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{toaast.desc}</div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <main className="main-content">
         <Routes>
