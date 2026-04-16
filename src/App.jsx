@@ -44,20 +44,28 @@ export default function App() {
   }, [policy]);
 
   useEffect(() => {
-    // Subscribe to entire database changes (alerts) for realtime push
-    const channel = supabase.channel('realtime-alerts')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts' }, payload => {
-        setToast({
-          title: payload.new.title || 'New Alert',
-          desc: payload.new.description || 'Threshold exceeded',
-          type: payload.new.severity === 'fraud' ? 'danger' : 'warning'
+    let channel;
+    try {
+      // Subscribe to entire database changes (alerts) for realtime push
+      channel = supabase.channel('realtime-alerts')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts' }, payload => {
+          setToast({
+            title: payload.new.title || 'New Alert',
+            desc: payload.new.description || 'Threshold exceeded',
+            type: payload.new.severity === 'fraud' ? 'danger' : 'warning'
+          });
+          setTimeout(() => setToast(null), 6000);
+        })
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn('Supabase realtime failed to connect. Disabling live push to save resources.');
+            supabase.removeChannel(channel);
+          }
         });
-        setTimeout(() => setToast(null), 6000);
-      })
-      .subscribe();
+    } catch(e) {}
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 

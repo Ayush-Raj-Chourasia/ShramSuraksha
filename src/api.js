@@ -4,7 +4,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://shramsuraksha-api-prod
 
 const api = axios.create({
   baseURL: API_BASE + '/api',
-  timeout: 15000,
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' }
 });
 
