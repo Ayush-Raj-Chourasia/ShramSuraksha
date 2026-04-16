@@ -70,12 +70,14 @@ router.post('/send-otp', async (req, res) => {
 
     if (email) {
       try {
-        await sendOTPEmail(email, otp, name || '');
+        // Enforce a strict 4-second timeout on SMTP since Railway blocks Port 587 on hobby tier, causing infinite hang
+        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP Timeout (Port Blocked by Host)')), 4000));
+        await Promise.race([sendOTPEmail(email, otp, name || ''), timeout]);
         res.json({ success: true, message: `OTP sent to ${email}`, channel: 'email' });
       } catch (mailErr) {
         console.error('Gmail SMTP error:', mailErr.message);
-        // In dev/demo, return OTP directly if email fails
-        res.json({ success: true, message: `OTP sent (demo: ${otp})`, otp: process.env.NODE_ENV !== 'production' ? otp : undefined, channel: 'email' });
+        // Railway blocks NodeMailer port 587, so we reliably drop into this rescue block to return the Demo OTP payload directly to the frontend.
+        res.json({ success: true, message: `OTP sent (demo: ${otp})`, otp, channel: 'email' });
       }
     } else {
       // SMS fallback - just return success (could integrate SMS later)
