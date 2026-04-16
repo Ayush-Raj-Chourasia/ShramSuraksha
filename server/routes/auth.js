@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { resolve4 } from 'node:dns/promises';
 import nodemailer from 'nodemailer';
 import twilio from 'twilio';
 import { OAuth2Client } from 'google-auth-library';
@@ -14,19 +15,33 @@ const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_T
   : null;
 const hasTwilioVerify = !!(twilioClient && process.env.TWILIO_VERIFY_SERVICE_SID);
 
-// ── Nodemailer transporter via Gmail SMTP ──────────────────────────────────
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  connectionTimeout: 8000,
-  greetingTimeout: 8000,
-  socketTimeout: 8000,
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+async function createGmailTransporter() {
+  let smtpHost = 'smtp.gmail.com';
+  try {
+    const v4 = await resolve4('smtp.gmail.com');
+    if (v4?.length) smtpHost = v4[0];
+  } catch (_) {
+    // Keep hostname fallback if DNS A lookup fails.
+  }
+
+  return nodemailer.createTransport({
+    host: smtpHost,
+    port: 587,
+    secure: false,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+    tls: {
+      // Required when connecting via resolved IPv4 to preserve certificate validation.
+      servername: 'smtp.gmail.com',
+      minVersion: 'TLSv1.2',
+    },
+  });
+}
 
 // Helper: generate 6-digit OTP
 function generateOTP() {
@@ -98,6 +113,7 @@ async function sendOTPEmail(email, otp, name) {
       </p>
     </div>
   `;
+  const transporter = await createGmailTransporter();
   await transporter.sendMail({
     from: `"ShramSuraksha" <${process.env.GMAIL_USER}>`,
     to: email,
@@ -172,6 +188,11 @@ router.post('/send-otp', async (req, res) => {
         res.json({ success: true, message: `OTP sent to ${phone}`, channel: 'sms' });
       } catch (smsErr) {
         console.error('Twilio SMS error:', smsErr.message);
+        if ((smsErr.message || '').toLowerCase().includes('unverified')) {
+          return res.status(503).json({
+            error: 'Twilio trial account can only send OTP to verified destination numbers. Verify this number in Twilio Console or upgrade account.'
+          });
+        }
         res.status(503).json({ error: 'Failed to deliver SMS OTP in real-time. Please use Google sign-in.' });
       }
     }
