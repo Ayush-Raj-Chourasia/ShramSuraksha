@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { BarChart3, Users, Shield, AlertTriangle, TrendingUp, Brain, FileText, Clock, Activity, Zap, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
-import { getStats, getAllClaims, getAllWorkers, riskAssessment, getCityTierBreakdown, getMonitorStatus } from '../api';
+import { getStats, getAllClaims, getAllWorkers, riskAssessment, getCityTierBreakdown, getMonitorStatus, getLogs } from '../api';
 
 const TIER_COLORS = { tier1: '#4F46E5', tier2: '#0D9488', tier3: '#64748B' };
 const TIER_LABELS = { tier1: 'Metro (Tier-1)', tier2: 'Tier-2 City', tier3: 'Tier-3 / Other' };
@@ -14,17 +14,21 @@ export default function AdminPage() {
   const [aiInsight, setAiInsight] = useState(null);
   const [tierBreakdown, setTierBreakdown] = useState(null);
   const [monitorStatus, setMonitorStatus] = useState(null);
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [logSummary, setLogSummary] = useState(null);
+  const [logFilter, setLogFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
-      const [s, c, w, ai, tb, ms] = await Promise.allSettled([
+      const [s, c, w, ai, tb, ms, logs] = await Promise.allSettled([
         getStats(), getAllClaims(), getAllWorkers(),
         riskAssessment({ city: 'Mumbai', zone: '4B' }),
         getCityTierBreakdown(),
         getMonitorStatus(),
+        getLogs({ limit: 50 }),
       ]);
       if (s.status === 'fulfilled') setStats(s.value.data);
       if (c.status === 'fulfilled') setClaims(c.value.data);
@@ -32,8 +36,21 @@ export default function AdminPage() {
       if (ai.status === 'fulfilled') setAiInsight(ai.value.data);
       if (tb.status === 'fulfilled') setTierBreakdown(tb.value.data?.breakdown);
       if (ms.status === 'fulfilled') setMonitorStatus(ms.value.data);
+      if (logs.status === 'fulfilled') {
+        setActivityLogs(logs.value.data?.logs || []);
+        setLogSummary(logs.value.data?.summary || null);
+      }
     } catch (e) { console.error(e); }
     setLoading(false);
+  };
+
+  const refreshLogs = async () => {
+    try {
+      const params = logFilter !== 'all' ? { category: logFilter, limit: 50 } : { limit: 50 };
+      const res = await getLogs(params);
+      setActivityLogs(res.data?.logs || []);
+      setLogSummary(res.data?.summary || null);
+    } catch (e) { console.error(e); }
   };
 
   const claimsByType = claims.reduce((acc, c) => {
