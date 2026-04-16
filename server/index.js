@@ -11,6 +11,7 @@ import aiRoutes from './routes/ai.js';
 import { connectDB } from './store.js';
 import { Worker, Policy, Claim, ActivityLog } from './models.js';
 import { startTriggerMonitor, getMonitorStatus } from './routes/trigger-monitor.js';
+import { requireAdmin } from './middleware/adminAuth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -110,7 +111,7 @@ app.use('/api/weather', weatherRoutes);
 app.use('/api/ai', aiRoutes);
 
 // ── Activity Logs endpoint (admin) ─────────────────────────────────────────
-app.get('/api/logs', async (req, res) => {
+app.get('/api/logs', requireAdmin, async (req, res) => {
   try {
     const { limit = 100, userId, action, category } = req.query;
     const filter = {};
@@ -163,7 +164,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // ── Stats endpoint ─────────────────────────────────────────────────────────
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', requireAdmin, async (req, res) => {
   try {
     const { getCityTier } = await import('./models.js');
     const [totalWorkers, policies, claims, workers] = await Promise.all([

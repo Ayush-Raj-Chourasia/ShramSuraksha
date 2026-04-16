@@ -13,10 +13,12 @@ import AlertsPage from './pages/AlertsPage';
 import AdminPage from './pages/AdminPage';
 import './App.css';
 
-// Initialize Supabase Client for Realtime WebSockets
-const supabaseUrl = 'https://zjfjvzejndkgjqcfcajz.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqZmp2emVqbmRrZ2pxY2ZjYWp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDc1NDYsImV4cCI6MjA5MDg4MzU0Nn0.ukHUtLKxT32K_XHDiQPIU201bQokavH2CaBIB7y0ufM';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const enableRealtime = import.meta.env.VITE_ENABLE_SUPABASE_REALTIME === 'true';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = enableRealtime && supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -44,6 +46,8 @@ export default function App() {
   }, [policy]);
 
   useEffect(() => {
+    if (!supabase) return undefined;
+
     let channel;
     try {
       // Subscribe to entire database changes (alerts) for realtime push
@@ -67,7 +71,7 @@ export default function App() {
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, []);
+  }, [supabase]);
 
   return (
     <div className="app-root">

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { Worker, Policy, Claim, Alert } from '../models.js';
 import { getCityTier, PLATFORM_INCOME } from '../models.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
 
 const router = Router();
 
@@ -206,7 +207,7 @@ router.post('/file', async (req, res) => {
 });
 
 // ── GET /api/claims/all ───────────────────────────────────────────────────
-router.get('/all', async (req, res) => {
+router.get('/all', requireAdmin, async (req, res) => {
   try {
     const claims = await Claim.find().sort({ createdAt: -1 }).lean();
     res.json(claims.map(c => ({ id: c._id, ...c })));

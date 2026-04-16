@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getCityTier, PLATFORM_INCOME } from '../models.js';
 import { Worker, Claim } from '../models.js';
 import { getMonitorStatus } from './trigger-monitor.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ try {
 } catch (e) { console.warn('Gemini AI not initialized:', e.message); }
 
 // ── City tier breakdown for admin ─────────────────────────────────────────
-router.get('/city-tiers', async (req, res) => {
+router.get('/city-tiers', requireAdmin, async (req, res) => {
   try {
     const workers = await Worker.find().lean();
     const breakdown = { tier1: 0, tier2: 0, tier3: 0 };
@@ -26,7 +27,7 @@ router.get('/city-tiers', async (req, res) => {
 });
 
 // ── Monitor status endpoint ───────────────────────────────────────────────
-router.get('/monitor-status', (req, res) => {
+router.get('/monitor-status', requireAdmin, (req, res) => {
   res.json(getMonitorStatus());
 });
 

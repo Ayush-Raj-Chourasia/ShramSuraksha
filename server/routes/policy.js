@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { Policy, Worker, Claim } from '../models.js';
 import { getCityTier } from '../models.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
 
 const router = Router();
 
@@ -75,7 +76,7 @@ router.post('/deactivate/:policyId', async (req, res) => {
 });
 
 // All policies (admin)
-router.get('/all', async (req, res) => {
+router.get('/all', requireAdmin, async (req, res) => {
   try {
     const policies = await Policy.find().lean();
     const workers = await Worker.find().lean();
