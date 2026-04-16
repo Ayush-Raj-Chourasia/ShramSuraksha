@@ -50,9 +50,6 @@ export default function LandingPage({ user }) {
             <Link to={user ? "/dashboard" : "/auth"} className="btn btn-primary btn-lg">
               {user ? 'Go to Dashboard' : 'Get Protected Now'} <ArrowRight size={18} />
             </Link>
-            <Link to="/admin" className="btn btn-secondary btn-lg">
-              View Admin Dashboard
-            </Link>
           </motion.div>
 
           {/* Trust indicators */}

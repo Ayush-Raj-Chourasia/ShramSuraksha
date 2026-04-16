@@ -32,7 +32,6 @@ export default function Navbar({ user, setUser }) {
             <Link to="/plans" className={`nav-link ${isActive('/plans')}`}>Plans</Link>
             <Link to="/claims" className={`nav-link ${isActive('/claims')}`}>Claims</Link>
             <Link to="/alerts" className={`nav-link ${isActive('/alerts')}`}>Alerts</Link>
-            <Link to="/admin" className={`nav-link ${isActive('/admin')}`}>Admin</Link>
             <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 8px' }} />
             <div className="nav-user" onClick={handleLogout} style={{ cursor: 'pointer' }}>
               <div className="nav-avatar">{user.name?.[0] || 'U'}</div>
@@ -42,7 +41,6 @@ export default function Navbar({ user, setUser }) {
         ) : (
           <>
             <Link to="/" className={`nav-link ${isActive('/')}`}>Home</Link>
-            <Link to="/admin" className={`nav-link ${isActive('/admin')}`}>Admin</Link>
             <Link to="/auth" className="nav-btn nav-btn-primary">Get Protected →</Link>
           </>
         )}
@@ -86,13 +84,11 @@ export default function Navbar({ user, setUser }) {
               <Link to="/plans" className="nav-link" onClick={() => setMobileOpen(false)}>Plans</Link>
               <Link to="/claims" className="nav-link" onClick={() => setMobileOpen(false)}>Claims</Link>
               <Link to="/alerts" className="nav-link" onClick={() => setMobileOpen(false)}>Alerts</Link>
-              <Link to="/admin" className="nav-link" onClick={() => setMobileOpen(false)}>Admin</Link>
               <button className="btn btn-danger btn-sm" onClick={handleLogout} style={{ marginTop: 8 }}>Logout</button>
             </>
           ) : (
             <>
               <Link to="/" className="nav-link" onClick={() => setMobileOpen(false)}>Home</Link>
-              <Link to="/admin" className="nav-link" onClick={() => setMobileOpen(false)}>Admin</Link>
               <Link to="/auth" className="btn btn-primary btn-sm" onClick={() => setMobileOpen(false)}>Get Protected</Link>
             </>
           )}

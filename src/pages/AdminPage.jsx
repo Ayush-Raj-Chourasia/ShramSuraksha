@@ -8,6 +8,10 @@ const TIER_COLORS = { tier1: '#4F46E5', tier2: '#0D9488', tier3: '#64748B' };
 const TIER_LABELS = { tier1: 'Metro (Tier-1)', tier2: 'Tier-2 City', tier3: 'Tier-3 / Other' };
 
 export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
   const [stats, setStats] = useState(null);
   const [claims, setClaims] = useState([]);
   const [workers, setWorkers] = useState([]);
@@ -19,7 +23,19 @@ export default function AdminPage() {
   const [logFilter, setLogFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { 
+    if (isAuthenticated) loadData(); 
+  }, [isAuthenticated]);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (password === 'admin123') {
+      setIsAuthenticated(true);
+      setAuthError('');
+    } else {
+      setAuthError('Invalid Admin Password');
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -79,6 +95,30 @@ export default function AdminPage() {
     : [];
 
   const fraudAlerts = claims.filter(c => c.fraudFlag);
+
+  if (!isAuthenticated) {
+    return (
+      <div style={{ minHeight: 'calc(100vh - 72px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', background: 'var(--bg-primary)' }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: 32, width: '100%', maxWidth: 400 }}>
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--primary-bg)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Shield size={32} />
+            </div>
+            <h2 style={{ fontSize: 24, fontWeight: 800 }}>Admin Portal</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Authorized personnel only</p>
+          </div>
+          <form onSubmit={handleLogin}>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label className="form-label">Admin Pin / Password</label>
+              <input type="password" placeholder="Enter admin123" className="form-input" value={password} onChange={e => setPassword(e.target.value)} autoFocus style={{width: '100%'}}/>
+            </div>
+            {authError && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 16, textAlign: 'center' }}>{authError}</div>}
+            <button type="submit" className="btn btn-primary btn-full">Secure Login</button>
+          </form>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (loading) return (
     <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
