@@ -324,6 +324,9 @@ router.post('/register', async (req, res) => {
       message: `Registration successful! Welcome to ShramSuraksha. City tier: ${tierInfo.label}`
     });
   } catch (err) {
+    if (err.message?.includes('OTP verification required')) {
+      return res.status(401).json({ error: err.message });
+    }
     res.status(500).json({ error: err.message });
   }
 });
@@ -354,6 +357,9 @@ router.post('/login', async (req, res) => {
       message: `Welcome back, ${user.name}!`
     });
   } catch (err) {
+    if (err.message?.includes('OTP verification required')) {
+      return res.status(401).json({ error: err.message });
+    }
     res.status(500).json({ error: err.message });
   }
 });
