@@ -20,12 +20,16 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function App() {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('shram_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('shram_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch(e) { return null; }
   });
   const [policy, setPolicy] = useState(() => {
-    const saved = localStorage.getItem('shram_policy');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('shram_policy');
+      return saved ? JSON.parse(saved) : null;
+    } catch(e) { return null; }
   });
   const [toaast, setToast] = useState(null);
 

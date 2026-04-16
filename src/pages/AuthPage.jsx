@@ -104,7 +104,8 @@ export default function AuthPage({ setUser, setPolicy }) {
       setStep('otp');
       startResendCountdown();
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to send OTP.');
+      const msg = err.response?.data?.error || err.message || 'Failed to send OTP.';
+      setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally { setLoading(false); }
   };
 
@@ -134,7 +135,8 @@ export default function AuthPage({ setUser, setPolicy }) {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'OTP verification failed');
+      const msg = err.response?.data?.error || err.message || 'OTP verification failed';
+      setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally { setLoading(false); }
   };
 
@@ -154,7 +156,8 @@ export default function AuthPage({ setUser, setPolicy }) {
       setUser(res.data.user);
       navigate('/plans');
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Registration failed');
+      const msg = err.response?.data?.error || err.message || 'Registration failed';
+      setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally { setLoading(false); }
   };
 
