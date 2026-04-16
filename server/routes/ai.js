@@ -1,228 +1,205 @@
 import { Router } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getCityTier, PLATFORM_INCOME } from '../models.js';
+import { Worker, Claim } from '../models.js';
+import { getMonitorStatus } from './trigger-monitor.js';
 
 const router = Router();
 
-let genAI;
-let model;
-
+let genAI, model;
 try {
   genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-} catch (e) {
-  console.warn('Gemini AI not initialized:', e.message);
-}
+} catch (e) { console.warn('Gemini AI not initialized:', e.message); }
 
-// AI-powered dynamic premium calculation
+// ── City tier breakdown for admin ─────────────────────────────────────────
+router.get('/city-tiers', async (req, res) => {
+  try {
+    const workers = await Worker.find().lean();
+    const breakdown = { tier1: 0, tier2: 0, tier3: 0 };
+    workers.forEach(w => {
+      const tier = getCityTier(w.city).tier;
+      breakdown[tier] = (breakdown[tier] || 0) + 1;
+    });
+    res.json({ breakdown, total: workers.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── Monitor status endpoint ───────────────────────────────────────────────
+router.get('/monitor-status', (req, res) => {
+  res.json(getMonitorStatus());
+});
+
+// ── GET /api/ai/behavioral-score/:userId ─────────────────────────────────
+router.get('/behavioral-score/:userId', async (req, res) => {
+  try {
+    const worker = await Worker.findById(req.params.userId).lean();
+    if (!worker) return res.status(404).json({ error: 'Worker not found' });
+
+    const weekAgo = new Date(Date.now() - 7 * 86400000);
+    const monthAgo = new Date(Date.now() - 30 * 86400000);
+    const [weekClaims, monthClaims, fraudClaims, totalClaims] = await Promise.all([
+      Claim.countDocuments({ userId: req.params.userId, createdAt: { $gte: weekAgo } }),
+      Claim.countDocuments({ userId: req.params.userId, createdAt: { $gte: monthAgo } }),
+      Claim.countDocuments({ userId: req.params.userId, fraudFlag: true }),
+      Claim.countDocuments({ userId: req.params.userId }),
+    ]);
+
+    const score = worker.behavioralScore || 80;
+    const tier = getCityTier(worker.city);
+    const incomePerDay = worker.declaredIncome || PLATFORM_INCOME[worker.platform] || 750;
+
+    const tips = [];
+    if (weekClaims > 3) tips.push('Reduce claim frequency this week to improve score');
+    if (fraudClaims > 0) tips.push('Past fraud flags detected — this affects payout amounts');
+    if (score >= 90) tips.push('Excellent record! You qualify for 20% behavioral bonus');
+    else if (score >= 75) tips.push('Good standing — 10% behavioral bonus applied');
+    else tips.push('Build clean claim history for better payouts');
+
+    res.json({
+      behavioralScore: score,
+      tier: tier.label,
+      tierMultiplier: tier.multiplier,
+      incomePerDay,
+      estimatedDailyPayout: Math.round(incomePerDay * 0.5 * tier.multiplier * (score >= 90 ? 1.2 : score >= 75 ? 1.1 : 1.0)),
+      weekClaims, monthClaims, fraudClaims, totalClaims,
+      tips,
+      bonus: score >= 90 ? '20%' : score >= 75 ? '10%' : '0%',
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── POST /api/ai/calculate-premium ────────────────────────────────────────
 router.post('/calculate-premium', async (req, res) => {
   try {
-    const { platform, city, zone, weatherData, aqiData, claimsHistory } = req.body;
-    
+    const { platform, city, zone, weatherData, aqiData, claimsHistory, declaredIncome, avgDailyHours, behavioralScore } = req.body;
+
+    const cityTierInfo = getCityTier(city || 'Mumbai');
+    const platformIncome = PLATFORM_INCOME[platform?.toLowerCase()] || 750;
+    const effectiveIncome = declaredIncome || platformIncome;
+
     if (!model) {
-      // Fallback without AI
+      const basePremium = cityTierInfo.tier === 'tier1' ? 79 : cityTierInfo.tier === 'tier2' ? 59 : 39;
       return res.json({
-        basePremium: 59,
-        adjustedPremium: 59,
+        basePremium,
+        adjustedPremium: basePremium,
         discount: 0,
         riskScore: 45,
-        factors: ['Using default pricing - AI unavailable'],
+        cityTier: cityTierInfo.label,
+        tierMultiplier: cityTierInfo.multiplier,
+        estimatedDailyPayout: Math.round(effectiveIncome * 0.5 * cityTierInfo.multiplier),
+        factors: ['Using default pricing — AI unavailable', `City tier: ${cityTierInfo.label}`],
         recommendation: 'standard',
-        confidence: 0.5
+        confidence: 0.5,
       });
     }
-    
-    const prompt = `You are an AI actuarial pricing engine for ShramSuraksha, a parametric insurance platform for gig delivery workers in India.
 
-Given the following worker profile and conditions, calculate a personalized WEEKLY insurance premium:
+    const prompt = `You are an AI actuarial engine for ShramSuraksha, India's first parametric income insurance for gig delivery workers.
 
 Worker Profile:
-- Delivery Platform: ${platform || 'zomato'}
-- City: ${city || 'Mumbai'}
-- Operating Zone: ${zone || '4B'}
-- Weather: Temperature ${weatherData?.temp || 34}°C, Humidity ${weatherData?.humidity || 78}%, Rain ${weatherData?.rain || 0}mm/hr
+- Platform: ${platform || 'zomato'} (benchmark income: ₹${platformIncome}/day)
+- Declared Income: ₹${effectiveIncome}/day, ${avgDailyHours || 8}hrs/day
+- City: ${city || 'Mumbai'} — City Tier: ${cityTierInfo.label} (${cityTierInfo.tier})
+- Zone: ${zone || '4B'}
+- Weather: ${weatherData?.temp || 34}°C, ${weatherData?.rain || 0}mm/hr rain
 - AQI: ${aqiData?.aqi || 120}
-- Previous Claims (last month): ${claimsHistory?.length || 0}
-- Days since last claim: ${claimsHistory?.daysSinceLastClaim || 30}
+- Previous Claims (last 30 days): ${claimsHistory?.length || 0}
+- Behavioral Score: ${behavioralScore || 80}/100
 
-IMPORTANT CONSTRAINTS:
-- This is LOSS OF INCOME insurance only (NOT health/life/vehicle)
-- Weekly pricing model (matching gig worker payout cycles)
-- Base plans: Basic ₹29/week, Standard ₹59/week, Premium ₹119/week
-- Adjust the premium based on risk factors (weather risk, AQI risk, zone risk, claim history)
-- Provide a risk score from 0-100
+Pricing logic:
+- Base premium reflects city risk tier (Tier-1 Metro higher), income level, and weather risk
+- Behavioral discounts: score ≥90 → 20% discount, score ≥75 → 10% discount
+- Income-linked payouts: payout ≈ income × 0.5 × tier_multiplier × behavioral_bonus
+- Weekly pricing (matching gig cycle): Basic ₹29, Standard ₹59, Premium ₹119
 
-Respond ONLY with valid JSON in this format:
+Respond ONLY with valid JSON:
 {
   "basePremium": <number>,
   "adjustedPremium": <number>,
-  "discount": <number (positive = discount, negative = surcharge)>,
+  "discount": <number>,
   "riskScore": <number 0-100>,
-  "factors": ["factor1", "factor2"],
+  "cityTier": "${cityTierInfo.label}",
+  "tierMultiplier": ${cityTierInfo.multiplier},
+  "estimatedDailyPayout": <number in INR>,
+  "factors": ["factor1", "factor2", "factor3"],
   "recommendation": "basic|standard|premium",
   "confidence": <number 0-1>,
-  "weeklyForecast": "brief sentence about next week's risk outlook"
+  "weeklyForecast": "brief sentence",
+  "behavioralDiscount": <number in %>
 }`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    
-    // Parse JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      res.json(parsed);
-    } else {
-      throw new Error('Could not parse AI response');
-    }
+    if (jsonMatch) res.json(JSON.parse(jsonMatch[0]));
+    else throw new Error('Could not parse AI response');
   } catch (err) {
     console.error('AI Premium Error:', err.message);
+    const cityTierInfo = getCityTier(req.body?.city || 'Mumbai');
     res.json({
-      basePremium: 59,
-      adjustedPremium: 55,
-      discount: 4,
-      riskScore: 38,
-      factors: ['Zone historical data shows low flood risk', 'Current weather is mild', 'No recent claims - good track record'],
-      recommendation: 'standard',
-      confidence: 0.82,
-      weeklyForecast: 'Low risk expected for the coming week. Moderate temperatures forecasted.'
+      basePremium: 59, adjustedPremium: 55, discount: 4, riskScore: 38,
+      cityTier: cityTierInfo.label, tierMultiplier: cityTierInfo.multiplier,
+      estimatedDailyPayout: Math.round(750 * 0.5 * cityTierInfo.multiplier),
+      factors: ['Zone historical data: low flood risk', 'Current weather mild', 'No recent claims'],
+      recommendation: 'standard', confidence: 0.82,
+      weeklyForecast: 'Low risk expected. Moderate temperatures forecasted.',
+      behavioralDiscount: 10,
     });
   }
 });
 
-// AI-powered fraud detection
+// ── POST /api/ai/fraud-check ───────────────────────────────────────────────
 router.post('/fraud-check', async (req, res) => {
   try {
     const { claim, userProfile, recentClaims } = req.body;
-    
     if (!model) {
-      return res.json({
-        fraudScore: 0.15,
-        isFraudulent: false,
-        reasons: [],
-        confidence: 0.5,
-        recommendation: 'approve'
-      });
+      return res.json({ fraudScore: 0.15, isFraudulent: false, reasons: [], confidence: 0.5, recommendation: 'approve' });
     }
-    
-    const prompt = `You are an AI fraud detection system for ShramSuraksha, a parametric insurance platform for gig delivery workers.
+    const prompt = `You are an AI fraud detection system for ShramSuraksha.
 
-Analyze this insurance claim for potential fraud:
+Claim: ${claim?.triggerType}, value ${claim?.triggerValue} ${claim?.triggerUnit}, location ${claim?.location}, worker active: ${claim?.wasWorking}
+Worker: ${userProfile?.platform}, ${userProfile?.city} (${userProfile?.cityTier}), claims this month: ${recentClaims?.length || 1}
+Recent claims: ${JSON.stringify(recentClaims?.slice(0, 3) || [])}
 
-Claim Details:
-- Trigger: ${claim?.triggerType || 'heavy_rainfall'}
-- Trigger Value: ${claim?.triggerValue || 35} ${claim?.triggerUnit || 'mm/hr'}
-- Location: ${claim?.location || 'Mumbai, Zone 4B'}
-- Time: ${claim?.time || new Date().toISOString()}
-- Worker was active: ${claim?.wasWorking !== false}
+Check: GPS spoofing, duplicates, timing anomalies, pattern anomalies, weather cross-verification.
 
-Worker Profile:
-- Platform: ${userProfile?.platform || 'zomato'}
-- City: ${userProfile?.city || 'Mumbai'}
-- Zone: ${userProfile?.zone || '4B'}
-- Total claims this month: ${recentClaims?.length || 1}
-- Account age: ${userProfile?.accountAge || '30 days'}
-
-Recent Claims:
-${JSON.stringify(recentClaims?.slice(0, 3) || [], null, 2)}
-
-Analyze for:
-1. GPS spoofing
-2. Duplicate claims
-3. Improbable claim timing
-4. Historical claim pattern anomalies
-5. Weather data cross-verification
-
-Respond ONLY with valid JSON:
-{
-  "fraudScore": <number 0-1>,
-  "isFraudulent": <boolean>,
-  "reasons": ["reason1", "reason2"],
-  "confidence": <number 0-1>,
-  "recommendation": "approve|review|deny",
-  "riskBreakdown": {
-    "gpsAnomaly": <number 0-1>,
-    "duplicateRisk": <number 0-1>,
-    "timingAnomaly": <number 0-1>,
-    "patternAnomaly": <number 0-1>
-  }
-}`;
+Respond ONLY with JSON:
+{"fraudScore":<0-1>,"isFraudulent":<bool>,"reasons":[],"confidence":<0-1>,"recommendation":"approve|review|deny","riskBreakdown":{"gpsAnomaly":<0-1>,"duplicateRisk":<0-1>,"timingAnomaly":<0-1>,"patternAnomaly":<0-1>}}`;
 
     const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      res.json(JSON.parse(jsonMatch[0]));
-    } else {
-      throw new Error('Could not parse AI response');
-    }
+    const jsonMatch = result.response.text().match(/\{[\s\S]*\}/);
+    if (jsonMatch) res.json(JSON.parse(jsonMatch[0]));
+    else throw new Error('Parse error');
   } catch (err) {
-    console.error('AI Fraud Check Error:', err.message);
-    res.json({
-      fraudScore: 0.12,
-      isFraudulent: false,
-      reasons: [],
-      confidence: 0.85,
-      recommendation: 'approve',
-      riskBreakdown: { gpsAnomaly: 0.05, duplicateRisk: 0.0, timingAnomaly: 0.1, patternAnomaly: 0.08 }
-    });
+    res.json({ fraudScore: 0.12, isFraudulent: false, reasons: [], confidence: 0.85, recommendation: 'approve',
+      riskBreakdown: { gpsAnomaly: 0.05, duplicateRisk: 0.0, timingAnomaly: 0.1, patternAnomaly: 0.08 } });
   }
 });
 
-// AI risk assessment for admin dashboard
+// ── POST /api/ai/risk-assessment ──────────────────────────────────────────
 router.post('/risk-assessment', async (req, res) => {
   try {
     const { city, zone, currentWeather, recentClaims } = req.body;
-    
+    const tier = getCityTier(city || 'Mumbai');
     if (!model) {
-      return res.json({
-        overallRisk: 'medium',
-        riskScore: 45,
-        predictedClaims: 3,
-        predictedPayout: 1200,
-        advice: 'Normal operations expected.',
-        weatherOutlook: 'Moderate conditions forecasted.'
-      });
+      return res.json({ overallRisk: 'medium', riskScore: 45, predictedClaims: 3, predictedPayout: 1200,
+        advice: 'Normal operations expected.', weatherOutlook: 'Moderate conditions.', cityTier: tier.label });
     }
-    
-    const prompt = `As an insurance risk analyst AI, provide a brief risk assessment for gig delivery workers in ${city || 'Mumbai'}, Zone ${zone || '4B'}.
+    const prompt = `Insurance risk analyst for ShramSuraksha. Assess gig worker risk in ${city || 'Mumbai'} (${tier.label} tier), Zone ${zone || '4B'}.
+Conditions: ${currentWeather?.temp || 34}°C, AQI ${currentWeather?.aqi || 120}, Rain ${currentWeather?.rain || 0}mm/hr, Recent claims: ${recentClaims || 5}
 
-Current conditions:
-- Temperature: ${currentWeather?.temp || 34}°C
-- AQI: ${currentWeather?.aqi || 120}
-- Rain: ${currentWeather?.rain || 0}mm/hr
-- Recent claims in zone: ${recentClaims || 5}
-
-Respond ONLY with valid JSON:
-{
-  "overallRisk": "low|medium|high",
-  "riskScore": <number 0-100>,
-  "predictedClaims": <number>,
-  "predictedPayout": <number in INR>,
-  "advice": "brief advice",
-  "weatherOutlook": "brief forecast",
-  "topRisks": ["risk1", "risk2"]
-}`;
+Respond ONLY with JSON:
+{"overallRisk":"low|medium|high","riskScore":<0-100>,"predictedClaims":<n>,"predictedPayout":<INR>,"advice":"text","weatherOutlook":"text","topRisks":["r1","r2"],"cityTier":"${tier.label}","tierMultiplier":${tier.multiplier}}`;
 
     const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      res.json(JSON.parse(jsonMatch[0]));
-    } else {
-      throw new Error('Parse error');
-    }
+    const jsonMatch = result.response.text().match(/\{[\s\S]*\}/);
+    if (jsonMatch) res.json(JSON.parse(jsonMatch[0]));
+    else throw new Error('Parse error');
   } catch (err) {
-    res.json({
-      overallRisk: 'medium',
-      riskScore: 45,
-      predictedClaims: 3,
-      predictedPayout: 1200,
-      advice: 'Monitor weather conditions. Standard operations recommended.',
-      weatherOutlook: 'Moderate temperatures with low precipitation expected.',
-      topRisks: ['Heat stress in afternoon hours', 'Moderate AQI levels']
-    });
+    const tier = getCityTier(req.body?.city || 'Mumbai');
+    res.json({ overallRisk: 'medium', riskScore: 45, predictedClaims: 3, predictedPayout: 1200,
+      advice: 'Monitor conditions. Standard operations recommended.', weatherOutlook: 'Moderate expected.',
+      topRisks: ['Heat stress in afternoon', 'Moderate AQI'], cityTier: tier.label, tierMultiplier: tier.multiplier });
   }
 });
 
