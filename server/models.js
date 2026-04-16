@@ -118,8 +118,29 @@ const otpSessionSchema = new mongoose.Schema({
 
 otpSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
+// ── Activity Log — tracks EVERY user action for audit/analytics ────────────
+const activityLogSchema = new mongoose.Schema({
+  userId: { type: String, default: 'anonymous' },
+  userName: { type: String, default: '' },
+  action: { type: String, required: true },       // e.g. 'OTP_SENT', 'LOGIN', 'CLAIM_FILED'
+  category: { type: String, default: 'general' }, // auth | claim | policy | weather | admin | error
+  details: { type: Object, default: {} },          // arbitrary payload
+  ip: { type: String, default: '' },
+  userAgent: { type: String, default: '' },
+  status: { type: String, default: 'success' },    // success | failure | pending
+  city: { type: String, default: '' },
+  platform: { type: String, default: '' },
+  durationMs: { type: Number, default: 0 },        // API response time
+  errorMessage: { type: String, default: '' },
+}, { timestamps: true });
+
+activityLogSchema.index({ userId: 1, createdAt: -1 });
+activityLogSchema.index({ action: 1, createdAt: -1 });
+activityLogSchema.index({ category: 1, createdAt: -1 });
+
 export const Worker = mongoose.model('Worker', workerSchema);
 export const Policy = mongoose.model('Policy', policySchema);
 export const Claim = mongoose.model('Claim', claimSchema);
 export const Alert = mongoose.model('Alert', alertSchema);
 export const OtpSession = mongoose.model('OtpSession', otpSessionSchema);
+export const ActivityLog = mongoose.model('ActivityLog', activityLogSchema);
