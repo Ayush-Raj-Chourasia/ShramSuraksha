@@ -1,14 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Zap, CloudRain, Wind, Thermometer, ArrowRight, CheckCircle2, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Shield, Zap, CloudRain, Wind, Thermometer, ArrowRight, CheckCircle2, Clock, TrendingUp, AlertTriangle, Star, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getWeather, getAQI, getUserClaims } from '../api';
+import { getWeather, getAQI, getUserClaims, getBehavioralScore } from '../api';
+
+const CITY_TIER_INFO = {
+  tier1: { label: 'Metro', multiplier: 1.3, color: '#4F46E5', bg: 'rgba(79,70,229,0.08)' },
+  tier2: { label: 'Tier-2', multiplier: 1.1, color: '#0D9488', bg: 'rgba(13,148,136,0.08)' },
+  tier3: { label: 'Tier-3', multiplier: 1.0, color: '#64748B', bg: 'rgba(100,116,139,0.08)' },
+};
 
 export default function Dashboard({ user, policy, setPolicy }) {
   const navigate = useNavigate();
   const [weather, setWeather] = useState(null);
   const [aqi, setAqi] = useState(null);
   const [claims, setClaims] = useState([]);
+  const [behavioral, setBehavioral] = useState(null);
 
   useEffect(() => {
     if (!user) { navigate('/auth'); return; }
@@ -17,14 +24,16 @@ export default function Dashboard({ user, policy, setPolicy }) {
 
   const loadData = async () => {
     try {
-      const [w, a, c] = await Promise.allSettled([
+      const [w, a, c, b] = await Promise.allSettled([
         getWeather(user.city || 'Mumbai'),
         getAQI(user.city || 'Mumbai'),
-        getUserClaims(user.id)
+        getUserClaims(user.id),
+        user.id ? getBehavioralScore(user.id) : Promise.reject('no id'),
       ]);
       if (w.status === 'fulfilled') setWeather(w.value.data);
       if (a.status === 'fulfilled') setAqi(a.value.data);
       if (c.status === 'fulfilled') setClaims(c.value.data);
+      if (b.status === 'fulfilled') setBehavioral(b.value.data);
     } catch (e) { console.error(e); }
   };
 
@@ -32,11 +41,18 @@ export default function Dashboard({ user, policy, setPolicy }) {
 
   const totalPaidOut = claims.filter(c => c.status === 'settled').reduce((s, c) => s + (c.payoutAmount || 0), 0);
   const daysProtected = policy ? Math.ceil((Date.now() - new Date(policy.startDate).getTime()) / 86400000) : 0;
+  const autoTriggered = claims.filter(c => c.autoTriggered).length;
+
+  const tierKey = user.cityTier || 'tier3';
+  const tierInfo = CITY_TIER_INFO[tierKey] || CITY_TIER_INFO.tier3;
+  const behScore = behavioral?.behavioralScore || user.behavioralScore || 80;
+  const behavBonus = behScore >= 90 ? '20%' : behScore >= 75 ? '10%' : '0%';
+  const estimatedPayout = behavioral?.estimatedDailyPayout || Math.round((user.declaredIncome || 750) * 0.5 * tierInfo.multiplier);
 
   return (
     <div className="page">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div>
             <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontWeight: 600, letterSpacing: 0.5, marginBottom: 8 }}>
@@ -47,31 +63,37 @@ export default function Dashboard({ user, policy, setPolicy }) {
             </h1>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-            {policy ? (
-              <span className="badge badge-success"><span className="badge-dot" style={{ background: 'var(--success)' }} /> Active Coverage</span>
-            ) : (
-              <span className="badge badge-danger"><span className="badge-dot" style={{ background: 'var(--danger)' }} /> No Coverage</span>
-            )}
-            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Zone {user.zone} · {user.city}</span>
+            {policy
+              ? <span className="badge badge-success"><span className="badge-dot" style={{ background: 'var(--success)' }} /> Active Coverage</span>
+              : <span className="badge badge-danger"><span className="badge-dot" style={{ background: 'var(--danger)' }} /> No Coverage</span>}
+            {/* City Tier Badge */}
+            <span style={{ fontSize: 12, padding: '2px 10px', borderRadius: 20, background: tierInfo.bg, color: tierInfo.color, fontWeight: 600 }}>
+              📍 {user.city} · {tierInfo.label} · {tierInfo.multiplier}× payout
+            </span>
           </div>
         </div>
       </motion.div>
 
-      {/* Hero Coverage Card */}
+      {/* Income-linked coverage card */}
       <motion.div className="card" style={{ padding: 28, marginTop: 24, background: policy ? 'linear-gradient(135deg, rgba(5,150,105,0.03), rgba(79,70,229,0.03))' : 'white' }}
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5 }}>
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-tertiary)', marginBottom: 12 }}>
-              {policy ? "TODAY'S COVERAGE" : 'NO ACTIVE PLAN'}
+              {policy ? "INCOME PROTECTION TODAY" : 'NO ACTIVE PLAN'}
             </p>
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
               <span style={{ fontSize: 20, color: 'var(--primary)', fontWeight: 700, marginBottom: 8, marginRight: 4 }}>₹</span>
               <span style={{ fontSize: 56, fontWeight: 800, letterSpacing: -2, lineHeight: 1, color: 'var(--text-primary)' }}>
-                {policy ? policy.dailyCoverage : '0'}
+                {policy ? estimatedPayout : '0'}
               </span>
-              <span style={{ fontSize: 14, color: 'var(--text-tertiary)', fontWeight: 500, marginBottom: 8, marginLeft: 6 }}>/day</span>
+              <span style={{ fontSize: 14, color: 'var(--text-tertiary)', fontWeight: 500, marginBottom: 8, marginLeft: 6 }}>/event</span>
             </div>
+            {policy && (
+              <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-tertiary)' }}>
+                ₹{user.declaredIncome || 750}/day income × 50% loss × {tierInfo.multiplier}× {tierInfo.label} × {behavBonus} behavioral bonus
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 52, height: 52, borderRadius: 16, background: policy ? 'var(--success-bg)' : 'var(--danger-bg)', border: `1px solid ${policy ? 'var(--success-border)' : 'var(--danger-border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -83,61 +105,79 @@ export default function Dashboard({ user, policy, setPolicy }) {
           </div>
         </div>
 
-        {/* Risk gauge */}
+        {/* Behavioral + Risk Gauges */}
         {policy && (
-          <div style={{ marginTop: 24, marginBottom: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Risk Level</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: user.riskScore < 40 ? 'var(--success)' : user.riskScore < 70 ? 'var(--warning)' : 'var(--danger)' }}>
-                {user.riskScore < 40 ? 'Low' : user.riskScore < 70 ? 'Medium' : 'High'} Risk
-              </span>
+          <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>Risk Level</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: user.riskScore < 40 ? 'var(--success)' : user.riskScore < 70 ? 'var(--warning)' : 'var(--danger)' }}>
+                  {user.riskScore < 40 ? 'Low' : user.riskScore < 70 ? 'Medium' : 'High'}
+                </span>
+              </div>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${user.riskScore || 30}%`, background: user.riskScore < 40 ? 'var(--success)' : user.riskScore < 70 ? 'var(--warning)' : 'var(--danger)' }} />
+              </div>
             </div>
-            <div className="progress-track">
-              <div className="progress-fill" style={{ width: `${user.riskScore}%`, background: user.riskScore < 40 ? 'var(--success)' : user.riskScore < 70 ? 'var(--warning)' : 'var(--danger)' }} />
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>Behavioral Score</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: behScore >= 90 ? 'var(--success)' : behScore >= 75 ? 'var(--primary)' : 'var(--warning)' }}>
+                  {behScore}/100 (+{behavBonus})
+                </span>
+              </div>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${behScore}%`, background: behScore >= 90 ? 'var(--success)' : behScore >= 75 ? 'var(--primary)' : 'var(--warning)' }} />
+              </div>
             </div>
           </div>
         )}
 
         {/* Stats */}
-        <div className="grid-3">
-          <div style={{ padding: '14px 8px', textAlign: 'center', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>{daysProtected}</div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4, fontWeight: 600 }}>Days Protected</div>
-          </div>
-          <div style={{ padding: '14px 8px', textAlign: 'center', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--success)' }}>₹{totalPaidOut}</div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4, fontWeight: 600 }}>Total Payouts</div>
-          </div>
-          <div style={{ padding: '14px 8px', textAlign: 'center', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#8B5CF6' }}>87s</div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4, fontWeight: 600 }}>Avg Settle</div>
-          </div>
+        <div className="grid-3" style={{ marginTop: 24 }}>
+          {[
+            { val: daysProtected, label: 'Days Protected', color: 'var(--primary)' },
+            { val: `₹${totalPaidOut}`, label: 'Total Payouts', color: 'var(--success)' },
+            { val: autoTriggered, label: 'Auto-Claims', color: '#8B5CF6' },
+          ].map((s, i) => (
+            <div key={i} style={{ padding: '14px 8px', textAlign: 'center', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.val}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4, fontWeight: 600 }}>{s.label}</div>
+            </div>
+          ))}
         </div>
       </motion.div>
 
+      {/* Behavioral Tips */}
+      {behavioral?.tips?.length > 0 && (
+        <motion.div className="card" style={{ padding: 20, marginTop: 16, background: 'linear-gradient(135deg, rgba(79,70,229,0.04), rgba(124,58,237,0.04))', border: '1px solid rgba(79,70,229,0.15)' }}
+          initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2, color: 'var(--primary)', marginBottom: 10 }}>🧠 BEHAVIORAL RISK INSIGHTS</div>
+          {behavioral.tips.map((tip, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: 'var(--text-secondary)', marginBottom: i < behavioral.tips.length - 1 ? 8 : 0 }}>
+              <span style={{ color: 'var(--primary)', marginTop: 1 }}>→</span> {tip}
+            </div>
+          ))}
+        </motion.div>
+      )}
+
       {/* CTAs */}
       <motion.div style={{ display: 'flex', gap: 12, marginTop: 20 }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-        {!policy ? (
-          <Link to="/plans" className="btn btn-primary btn-full">🛡️ Get Protected Now <ArrowRight size={16} /></Link>
-        ) : (
-          <>
+        {!policy
+          ? <Link to="/plans" className="btn btn-primary btn-full">🛡️ Get Protected Now <ArrowRight size={16} /></Link>
+          : <>
             <Link to="/claims" className="btn btn-primary" style={{ flex: 1 }}>⚡ File a Claim</Link>
             <Link to="/plans" className="btn btn-secondary" style={{ flex: 1 }}>🛡️ Change Plan</Link>
-          </>
-        )}
+          </>}
       </motion.div>
 
       {/* Weather & Conditions */}
       <motion.div style={{ marginTop: 28 }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-tertiary)', marginBottom: 12, textTransform: 'uppercase' }}>
-          Today's Conditions
-        </p>
+        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-tertiary)', marginBottom: 12, textTransform: 'uppercase' }}>Today's Conditions</p>
         <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
           {weather && (
             <>
-              <div className={`chip ${weather.temp > 40 ? 'chip-danger' : 'chip-primary'}`}>
-                <Thermometer size={12} /> {weather.temp}°C
-              </div>
+              <div className={`chip ${weather.temp > 40 ? 'chip-danger' : 'chip-primary'}`}><Thermometer size={12} /> {weather.temp}°C</div>
               <div className="chip chip-primary"><Wind size={12} /> {weather.windSpeed} km/h</div>
               {weather.rain1h > 0 && <div className="chip chip-warning"><CloudRain size={12} /> {weather.rain1h}mm/hr</div>}
             </>
@@ -147,7 +187,8 @@ export default function Dashboard({ user, policy, setPolicy }) {
               🌫️ AQI: {aqi.aqi}
             </div>
           )}
-          <div className="chip chip-success"><CheckCircle2 size={12} /> Zone {user.zone}</div>
+          <div className="chip chip-success"><CheckCircle2 size={12} /> Zone {user.zone || 'A'}</div>
+          <div className="chip" style={{ background: tierInfo.bg, color: tierInfo.color }}>📍 {tierInfo.label}</div>
         </div>
       </motion.div>
 
@@ -155,7 +196,7 @@ export default function Dashboard({ user, policy, setPolicy }) {
       {claims.length > 0 && (
         <motion.div style={{ marginTop: 28 }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Recent Claims</p>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-tertiary)' }}>RECENT CLAIMS</p>
             <Link to="/claims" style={{ fontSize: 13, color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>View All →</Link>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -166,9 +207,13 @@ export default function Dashboard({ user, policy, setPolicy }) {
                     {c.status === 'settled' ? <CheckCircle2 size={18} color="var(--success)" /> : <Clock size={18} color="var(--warning)" />}
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{c.triggerType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {c.triggerType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      {c.autoTriggered && <span style={{ fontSize: 9, background: '#8B5CF6', color: 'white', padding: '1px 6px', borderRadius: 20, fontWeight: 700 }}>AUTO</span>}
+                    </div>
                     <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
                       {new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {c.settleTime ? `${c.settleTime}s` : 'Pending'}
+                      {c.tierMultiplier && c.tierMultiplier > 1 && <span style={{ color: 'var(--primary)', marginLeft: 6 }}>+{Math.round((c.tierMultiplier - 1) * 100)}% metro</span>}
                     </div>
                   </div>
                 </div>
