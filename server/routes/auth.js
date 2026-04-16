@@ -282,6 +282,7 @@ router.post('/admin/login', async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const { name, phone, email, platform, city, zone, avgDailyHours, declaredIncome, whatsappOptIn } = req.body;
+    const normalizedPhone = (phone || '').replace(/\D/g, '');
     if (!name || !phone || !platform || !city) {
       return res.status(400).json({ error: 'Name, phone, platform, and city are required' });
     }
@@ -289,7 +290,7 @@ router.post('/register', async (req, res) => {
     const identifier = normalizeIdentifier({ email, phone });
     await consumeVerifiedSession(identifier);
 
-    const existing = await Worker.findOne({ phone });
+    const existing = await Worker.findOne({ phone: normalizedPhone });
     if (existing) {
       return res.status(400).json({ error: 'Phone number already registered', user: existing });
     }
@@ -299,7 +300,9 @@ router.post('/register', async (req, res) => {
     const effectiveIncome = declaredIncome || platformBase;
 
     const user = await Worker.create({
-      name, phone, email: email || '',
+      name,
+      phone: normalizedPhone,
+      email: email || '',
       platform: platform.toLowerCase(), city,
       cityTier: tierInfo.tier,
       zone: zone || 'auto',
@@ -334,7 +337,7 @@ router.post('/login', async (req, res) => {
 
     await consumeVerifiedSession(identifier);
 
-    const user = await Worker.findOne(phone ? { phone } : { email }).lean();
+    const user = await Worker.findOne(phone ? { phone: identifier } : { email: identifier }).lean();
     if (!user) return res.status(404).json({ error: 'User not found. Please register first.' });
 
     const uid = user._id.toString();

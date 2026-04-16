@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { BarChart3, Users, Shield, AlertTriangle, TrendingUp, Brain, FileText, Clock, Activity, Zap, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
-import { getStats, getAllClaims, getAllWorkers, riskAssessment, getCityTierBreakdown, getMonitorStatus, getLogs } from '../api';
+import { getStats, getAllClaims, getAllWorkers, riskAssessment, getCityTierBreakdown, getMonitorStatus, getLogs, adminLogin } from '../api';
 
 const TIER_COLORS = { tier1: '#4F46E5', tier2: '#0D9488', tier3: '#64748B' };
 const TIER_LABELS = { tier1: 'Metro (Tier-1)', tier2: 'Tier-2 City', tier3: 'Tier-3 / Other' };
 
 export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('shram_admin_token'));
+  const [adminToken, setAdminToken] = useState(() => localStorage.getItem('shram_admin_token') || '');
+  const [adminEmail, setAdminEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
@@ -25,26 +27,39 @@ export default function AdminPage() {
 
   useEffect(() => { 
     if (isAuthenticated) loadData(); 
-  }, [isAuthenticated]);
+  }, [isAuthenticated, adminToken]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (password === 'admin123') {
+    setAuthError('');
+    try {
+      const res = await adminLogin(adminEmail, password);
+      const token = res.data?.token;
+      if (!token) throw new Error('Missing admin token');
+      localStorage.setItem('shram_admin_token', token);
+      setAdminToken(token);
       setIsAuthenticated(true);
-      setAuthError('');
-    } else {
-      setAuthError('Invalid Admin Password');
+      setPassword('');
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Admin login failed';
+      setAuthError(msg);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('shram_admin_token');
+    setAdminToken('');
+    setIsAuthenticated(false);
   };
 
   const loadData = async () => {
     try {
       const [s, c, w, ai, tb, ms, logs] = await Promise.allSettled([
-        getStats(), getAllClaims(), getAllWorkers(),
+        getStats(adminToken), getAllClaims(adminToken), getAllWorkers(adminToken),
         riskAssessment({ city: 'Mumbai', zone: '4B' }),
-        getCityTierBreakdown(),
-        getMonitorStatus(),
-        getLogs({ limit: 50 }),
+        getCityTierBreakdown(adminToken),
+        getMonitorStatus(adminToken),
+        getLogs(adminToken, { limit: 50 }),
       ]);
       if (s.status === 'fulfilled') setStats(s.value.data);
       if (c.status === 'fulfilled') setClaims(c.value.data);
@@ -56,14 +71,20 @@ export default function AdminPage() {
         setActivityLogs(logs.value.data?.logs || []);
         setLogSummary(logs.value.data?.summary || null);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      const status = e?.response?.status;
+      if (status === 401 || status === 403) {
+        handleLogout();
+      }
+    }
     setLoading(false);
   };
 
   const refreshLogs = async () => {
     try {
       const params = logFilter !== 'all' ? { category: logFilter, limit: 50 } : { limit: 50 };
-      const res = await getLogs(params);
+      const res = await getLogs(adminToken, params);
       setActivityLogs(res.data?.logs || []);
       setLogSummary(res.data?.summary || null);
     } catch (e) { console.error(e); }
@@ -109,8 +130,12 @@ export default function AdminPage() {
           </div>
           <form onSubmit={handleLogin}>
             <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label className="form-label">Admin Pin / Password</label>
-              <input type="password" placeholder="Enter admin123" className="form-input" value={password} onChange={e => setPassword(e.target.value)} autoFocus style={{width: '100%'}}/>
+              <label className="form-label">Admin Email</label>
+              <input type="email" placeholder="admin@yourdomain.com" className="form-input" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} autoFocus style={{width: '100%'}}/>
+            </div>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label className="form-label">Admin Password</label>
+              <input type="password" placeholder="Enter admin password" className="form-input" value={password} onChange={e => setPassword(e.target.value)} style={{width: '100%'}}/>
             </div>
             {authError && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 16, textAlign: 'center' }}>{authError}</div>}
             <button type="submit" className="btn btn-primary btn-full">Secure Login</button>
@@ -131,6 +156,7 @@ export default function AdminPage() {
       <motion.div className="page-header" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title">Admin Dashboard</h1>
         <p className="page-desc">Risk intelligence, city-tier analytics & automated monitoring</p>
+        <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 8 }}>Logout Admin</button>
       </motion.div>
 
       {/* Trigger Monitor Status */}

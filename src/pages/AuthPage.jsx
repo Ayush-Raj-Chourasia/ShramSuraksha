@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Phone, User, MapPin, Truck, ArrowRight, CheckCircle2, Mail, Clock, IndianRupee, MessageCircle, RefreshCw, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { sendOTP, verifyOTP, registerWorker, loginWorker } from '../api';
+import { sendOTP, verifyOTP, registerWorker, loginWorker, googleAuth } from '../api';
 
 const PLATFORMS = [
   { id: 'zomato', label: 'Zomato', emoji: '🍕', color: '#E23744', income: 800 },
@@ -74,6 +74,8 @@ export default function AuthPage({ setUser, setPolicy }) {
   const [mode, setMode] = useState('register'); // register | login
   const [step, setStep] = useState('auth');     // auth | otp | profile
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
   const [detectingLoc, setDetectingLoc] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
   const [error, setError] = useState('');
@@ -83,6 +85,7 @@ export default function AuthPage({ setUser, setPolicy }) {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
+    phone: '',
     name: '', platform: 'zomato', city: 'Mumbai',
     avgDailyHours: 8, declaredIncome: 800, whatsappOptIn: true,
   });
@@ -90,6 +93,72 @@ export default function AuthPage({ setUser, setPolicy }) {
   const selectedPlatform = PLATFORMS.find(p => p.id === form.platform);
   const selectedCity = CITIES.find(c => c.name === form.city);
   const isEmail = identifier.includes('@');
+
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) return;
+
+    const initGoogle = () => {
+      if (!window.google?.accounts?.id) return;
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async ({ credential }) => {
+          setError('');
+          setGoogleLoading(true);
+          try {
+            const res = await googleAuth(credential);
+            if (res.data.signupRequired) {
+              setMode('register');
+              setStep('profile');
+              setIdentifier(res.data.profile.email);
+              setForm(prev => ({
+                ...prev,
+                name: res.data.profile.name || prev.name,
+                phone: prev.phone || '',
+              }));
+            } else {
+              setUser(res.data.user);
+              if (res.data.activePolicy) setPolicy(res.data.activePolicy);
+              navigate('/dashboard');
+            }
+          } catch (err) {
+            const msg = err.response?.data?.error || err.message || 'Google sign-in failed';
+            setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+          } finally {
+            setGoogleLoading(false);
+          }
+        }
+      });
+      const node = document.getElementById('google-signin-btn');
+      if (node) {
+        node.innerHTML = '';
+        window.google.accounts.id.renderButton(node, {
+          theme: 'outline',
+          size: 'large',
+          width: 320,
+          text: 'continue_with',
+          shape: 'pill',
+        });
+      }
+      setGoogleEnabled(true);
+    };
+
+    if (window.google?.accounts?.id) {
+      initGoogle();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = initGoogle;
+    document.body.appendChild(script);
+
+    return () => {
+      if (script.parentNode) script.parentNode.removeChild(script);
+    };
+  }, [navigate, setPolicy, setUser]);
 
   // ── Step 1: Send OTP ──────────────────────────────────
   const handleSendOTP = async (e) => {
@@ -124,6 +193,7 @@ export default function AuthPage({ setUser, setPolicy }) {
 
       if (mode === 'register') {
         // Move to progressive profile setup step!
+        setForm(prev => ({ ...prev, phone: !isEmail ? identifier : prev.phone }));
         setStep('profile');
       } else {
         const payload = isEmail ? { email: identifier } : { phone: identifier };
@@ -142,12 +212,13 @@ export default function AuthPage({ setUser, setPolicy }) {
   const handleFinishProfile = async (e) => {
     e.preventDefault();
     if (!form.name) { setError('Name is required'); return; }
+    if (!form.phone || form.phone.replace(/\D/g, '').length < 10) { setError('Valid phone number is required'); return; }
     setError(''); setLoading(true);
     try {
       const payload = {
         ...form,
         email: isEmail ? identifier : '',
-        phone: !isEmail ? identifier : '9999999999', // fallback if they used email
+        phone: isEmail ? form.phone : identifier,
       };
       
       const res = await registerWorker({ ...payload, platform: form.platform.toLowerCase() });
@@ -249,6 +320,20 @@ export default function AuthPage({ setUser, setPolicy }) {
               <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
                 {loading ? <div className="spinner" style={{ width: 18, height: 18 }} /> : (mode === 'register' ? `${t.sendOtp} →` : `${t.login} →`)}
               </button>
+
+              <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
+                <div id="google-signin-btn" />
+              </div>
+              {googleLoading && (
+                <div style={{ marginTop: 8, textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)' }}>
+                  Verifying Google account...
+                </div>
+              )}
+              {!googleEnabled && (
+                <div style={{ marginTop: 8, textAlign: 'center', fontSize: 12, color: 'var(--text-tertiary)' }}>
+                  Google sign-in unavailable until client ID is configured.
+                </div>
+              )}
             </form>
           </motion.div>
         )}
@@ -296,6 +381,11 @@ export default function AuthPage({ setUser, setPolicy }) {
             </div>
 
             <form onSubmit={handleFinishProfile} className="card" style={{ padding: 28 }}>
+              <div className="form-group">
+                <label className="form-label"><Phone size={14} style={{ marginRight: 6 }} />Phone Number</label>
+                <input className="form-input" placeholder="Enter 10-digit phone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} required />
+              </div>
+
               <div className="form-group">
                 <label className="form-label"><User size={14} style={{ marginRight: 6 }} />{t.nameLabel}</label>
                 <input className="form-input" placeholder={t.namePh} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
