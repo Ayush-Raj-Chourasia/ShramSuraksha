@@ -249,10 +249,6 @@ export default function AuthPage({ setUser, setPolicy }) {
               <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
                 {loading ? <div className="spinner" style={{ width: 18, height: 18 }} /> : (mode === 'register' ? `${t.sendOtp} →` : `${t.login} →`)}
               </button>
-              
-              <div style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: 'var(--text-tertiary)' }}>
-                {t.demoHint}
-              </div>
             </form>
           </motion.div>
         )}
@@ -276,7 +272,6 @@ export default function AuthPage({ setUser, setPolicy }) {
                 ))}
               </div>
               {error && <div style={{ padding: 12, borderRadius: 10, background: 'var(--danger-bg)', color: 'var(--danger)', fontSize: 13, marginBottom: 16 }}>{error}</div>}
-              {demoOtp && <div style={{ padding: 10, borderRadius: 10, background: '#FFF7ED', color: '#92400E', fontSize: 13, marginBottom: 16 }}>🧪 Demo OTP: <strong>{demoOtp}</strong></div>}
               
               <button onClick={handleVerifyOTP} className="btn btn-primary btn-full" disabled={loading || otpValues.join('').length < 6} style={{ marginBottom: 16 }}>
                 {loading ? <div className="spinner" style={{ width: 18, height: 18 }} /> : <><CheckCircle2 size={16} /> {t.verifyBtn}</>}
