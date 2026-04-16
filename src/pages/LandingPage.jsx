@@ -112,7 +112,7 @@ export default function LandingPage({ user }) {
             {t.heroSub}
           </motion.p>
 
-          <motion.div className="hero-ctas" style={{ flexDirection: 'column', gap: 12 }} {...fadeUp} transition={{ delay: 0.3, duration: 0.7 }}>
+          <motion.div className="hero-ctas" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }} {...fadeUp} transition={{ delay: 0.3, duration: 0.7 }}>
             <Link to={user ? "/dashboard" : "/auth"} className="btn btn-primary btn-lg" style={{ width: '100%', maxWidth: 300, display: 'flex', justifyContent: 'center' }}>
               {t.cta} <ArrowRight size={18} />
             </Link>
