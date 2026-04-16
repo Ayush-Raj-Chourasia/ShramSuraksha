@@ -19,9 +19,25 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [policy, setPolicy] = useState(null);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('shram_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [policy, setPolicy] = useState(() => {
+    const saved = localStorage.getItem('shram_policy');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [toaast, setToast] = useState(null);
+
+  useEffect(() => {
+    if (user) localStorage.setItem('shram_user', JSON.stringify(user));
+    else localStorage.removeItem('shram_user');
+  }, [user]);
+
+  useEffect(() => {
+    if (policy) localStorage.setItem('shram_policy', JSON.stringify(policy));
+    else localStorage.removeItem('shram_policy');
+  }, [policy]);
 
   useEffect(() => {
     // Subscribe to entire database changes (alerts) for realtime push
