@@ -80,7 +80,6 @@ export default function AuthPage({ setUser, setPolicy }) {
   
   const [identifier, setIdentifier] = useState(''); // single smart field
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
-  const [demoOtp, setDemoOtp] = useState('');
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -100,7 +99,6 @@ export default function AuthPage({ setUser, setPolicy }) {
     try {
       const payload = isEmail ? { email: identifier } : { phone: identifier };
       const res = await sendOTP(payload);
-      if (res.data.otp) setDemoOtp(res.data.otp);
       setStep('otp');
       startResendCountdown();
     } catch (err) {
