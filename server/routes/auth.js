@@ -29,7 +29,7 @@ function buildOtpMailMessage(email, otp, name) {
     <div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f8f7ff;border-radius:16px;">
       <div style="text-align:center;margin-bottom:24px;">
         <div style="width:56px;height:56px;background:linear-gradient(135deg,#4F46E5,#7C3AED);border-radius:16px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;">
-          <span style="color:white;font-size:24px;">🛡️</span>
+          <span style="color:white;font-size:18px;font-weight:800;letter-spacing:0.6px;">SS</span>
         </div>
         <h2 style="margin:0;color:#1a1a2e;font-size:22px;font-weight:800;">ShramSuraksha</h2>
         <p style="color:#64748b;margin:4px 0 0;font-size:13px;">Parametric Insurance for Delivery Workers</p>
@@ -40,17 +40,18 @@ function buildOtpMailMessage(email, otp, name) {
         <div style="text-align:center;padding:20px;background:#f8f7ff;border-radius:12px;border:2px dashed #4F46E5;margin-bottom:24px;">
           <span style="font-size:40px;font-weight:900;letter-spacing:12px;color:#4F46E5;">${otp}</span>
         </div>
-        <p style="color:#94a3b8;font-size:12px;margin:0;text-align:center;">⏱️ This OTP expires in <strong>10 minutes</strong>. Never share it with anyone.</p>
+        <p style="color:#94a3b8;font-size:12px;margin:0;text-align:center;">This OTP expires in <strong>10 minutes</strong>. Never share it with anyone.</p>
       </div>
       <p style="color:#94a3b8;font-size:11px;text-align:center;margin-top:20px;">
-        ShramSuraksha · Protecting India's gig workforce<br/>
+        ShramSuraksha - Protecting India's gig workforce<br/>
         If you didn't request this OTP, please ignore this email.
       </p>
     </div>
   `;
 
-  const subject = `${otp} — Your ShramSuraksha OTP (valid 10 min)`;
+  const subject = 'ShramSuraksha OTP (valid 10 min)';
   const mime = [
+    `From: ShramSuraksha <${process.env.GMAIL_USER}>`,
     `To: ${email}`,
     `Subject: ${subject}`,
     'Content-Type: text/html; charset=UTF-8',

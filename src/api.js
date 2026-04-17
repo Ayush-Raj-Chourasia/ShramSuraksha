@@ -51,6 +51,7 @@ export const getMonitorStatus = (adminToken) => api.get('/ai/monitor-status', wi
 // ── Stats ────────────────────────────────────────────────────────────────
 export const getStats = (adminToken) => api.get('/stats', withAdminAuth(adminToken));
 export const getHealth = () => api.get('/health');
+export const getPublicMetrics = () => api.get('/public-metrics');
 export const getLogs = (adminToken, params = {}) => api.get('/logs', { ...withAdminAuth(adminToken), params });
 
 export default api;

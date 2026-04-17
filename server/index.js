@@ -166,6 +166,42 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// ── Public metrics endpoint for live dashboard cards ───────────────────────
+app.get('/api/public-metrics', async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    const day = startOfWeek.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    startOfWeek.setDate(startOfWeek.getDate() + diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const [workersSafe, settledClaimsThisWeek] = await Promise.all([
+      Worker.countDocuments(),
+      Claim.find({
+        status: 'settled',
+        settledAt: { $gte: startOfWeek }
+      }).lean(),
+    ]);
+
+    const paidThisWeek = settledClaimsThisWeek.reduce((sum, c) => sum + (c.payoutAmount || 0), 0);
+    const under90Count = settledClaimsThisWeek.filter(c => (c.settleTime || 0) > 0 && (c.settleTime || 0) <= 90).length;
+    const claimsUnder90Pct = settledClaimsThisWeek.length
+      ? Math.round((under90Count / settledClaimsThisWeek.length) * 100)
+      : 0;
+
+    res.json({
+      paidThisWeek,
+      claimsUnder90Pct,
+      workersSafe,
+      settledClaimsThisWeek: settledClaimsThisWeek.length,
+      timestamp: now.toISOString(),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Stats endpoint ─────────────────────────────────────────────────────────
 app.get('/api/stats', requireAdmin, async (req, res) => {
   try {
