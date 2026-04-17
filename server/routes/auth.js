@@ -1,6 +1,4 @@
 import { Router } from 'express';
-import { resolve4 } from 'node:dns/promises';
-import nodemailer from 'nodemailer';
 import twilio from 'twilio';
 import { OAuth2Client } from 'google-auth-library';
 import { Worker, Policy, Claim, OtpSession } from '../models.js';
@@ -10,37 +8,58 @@ import { issueAdminToken, requireAdmin } from '../middleware/adminAuth.js';
 const router = Router();
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const gmailApiClient = process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN
+  ? new OAuth2Client(process.env.GMAIL_CLIENT_ID, process.env.GMAIL_CLIENT_SECRET, 'urn:ietf:wg:oauth:2.0:oob')
+  : null;
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   : null;
 const hasTwilioVerify = !!(twilioClient && process.env.TWILIO_VERIFY_SERVICE_SID);
 
-async function createGmailTransporter({ secure = false, port = 587 } = {}) {
-  let smtpHost = 'smtp.gmail.com';
-  try {
-    const v4 = await resolve4('smtp.gmail.com');
-    if (v4?.length) smtpHost = v4[0];
-  } catch (_) {
-    // Keep hostname fallback if DNS A lookup fails.
-  }
+function base64UrlEncode(text) {
+  return Buffer.from(text)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
 
-  return nodemailer.createTransport({
-    host: smtpHost,
-    port,
-    secure,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-    tls: {
-      // Required when connecting via resolved IPv4 to preserve certificate validation.
-      servername: 'smtp.gmail.com',
-      minVersion: 'TLSv1.2',
-    },
-  });
+function buildOtpMailMessage(email, otp, name) {
+  const html = `
+    <div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f8f7ff;border-radius:16px;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="width:56px;height:56px;background:linear-gradient(135deg,#4F46E5,#7C3AED);border-radius:16px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;">
+          <span style="color:white;font-size:24px;">🛡️</span>
+        </div>
+        <h2 style="margin:0;color:#1a1a2e;font-size:22px;font-weight:800;">ShramSuraksha</h2>
+        <p style="color:#64748b;margin:4px 0 0;font-size:13px;">Parametric Insurance for Delivery Workers</p>
+      </div>
+      <div style="background:white;border-radius:12px;padding:28px;border:1px solid #e2e8f0;">
+        <p style="color:#334155;font-size:15px;margin:0 0 20px;">Hi <strong>${name || 'there'}</strong>,</p>
+        <p style="color:#64748b;font-size:14px;margin:0 0 24px;">Your one-time password (OTP) for ShramSuraksha login is:</p>
+        <div style="text-align:center;padding:20px;background:#f8f7ff;border-radius:12px;border:2px dashed #4F46E5;margin-bottom:24px;">
+          <span style="font-size:40px;font-weight:900;letter-spacing:12px;color:#4F46E5;">${otp}</span>
+        </div>
+        <p style="color:#94a3b8;font-size:12px;margin:0;text-align:center;">⏱️ This OTP expires in <strong>10 minutes</strong>. Never share it with anyone.</p>
+      </div>
+      <p style="color:#94a3b8;font-size:11px;text-align:center;margin-top:20px;">
+        ShramSuraksha · Protecting India's gig workforce<br/>
+        If you didn't request this OTP, please ignore this email.
+      </p>
+    </div>
+  `;
+
+  const subject = `${otp} — Your ShramSuraksha OTP (valid 10 min)`;
+  const mime = [
+    `To: ${email}`,
+    `Subject: ${subject}`,
+    'Content-Type: text/html; charset=UTF-8',
+    'MIME-Version: 1.0',
+    '',
+    html,
+  ].join('\r\n');
+
+  return base64UrlEncode(mime);
 }
 
 // Helper: generate 6-digit OTP
@@ -88,47 +107,34 @@ async function consumeVerifiedSession(identifier) {
   return session;
 }
 
-// Helper: send OTP email
 async function sendOTPEmail(email, otp, name) {
-  const html = `
-    <div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f8f7ff;border-radius:16px;">
-      <div style="text-align:center;margin-bottom:24px;">
-        <div style="width:56px;height:56px;background:linear-gradient(135deg,#4F46E5,#7C3AED);border-radius:16px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;">
-          <span style="color:white;font-size:24px;">🛡️</span>
-        </div>
-        <h2 style="margin:0;color:#1a1a2e;font-size:22px;font-weight:800;">ShramSuraksha</h2>
-        <p style="color:#64748b;margin:4px 0 0;font-size:13px;">Parametric Insurance for Delivery Workers</p>
-      </div>
-      <div style="background:white;border-radius:12px;padding:28px;border:1px solid #e2e8f0;">
-        <p style="color:#334155;font-size:15px;margin:0 0 20px;">Hi <strong>${name || 'there'}</strong>,</p>
-        <p style="color:#64748b;font-size:14px;margin:0 0 24px;">Your one-time password (OTP) for ShramSuraksha login is:</p>
-        <div style="text-align:center;padding:20px;background:#f8f7ff;border-radius:12px;border:2px dashed #4F46E5;margin-bottom:24px;">
-          <span style="font-size:40px;font-weight:900;letter-spacing:12px;color:#4F46E5;">${otp}</span>
-        </div>
-        <p style="color:#94a3b8;font-size:12px;margin:0;text-align:center;">⏱️ This OTP expires in <strong>10 minutes</strong>. Never share it with anyone.</p>
-      </div>
-      <p style="color:#94a3b8;font-size:11px;text-align:center;margin-top:20px;">
-        ShramSuraksha · Protecting India's gig workforce<br/>
-        If you didn't request this OTP, please ignore this email.
-      </p>
-    </div>
-  `;
-  const payload = {
-    from: `"ShramSuraksha" <${process.env.GMAIL_USER}>`,
-    to: email,
-    subject: `${otp} — Your ShramSuraksha OTP (valid 10 min)`,
-    html,
-  };
+  if (!process.env.GMAIL_USER) {
+    throw new Error('GMAIL_USER is required for email OTP delivery.');
+  }
 
-  // First attempt: STARTTLS on 587
-  try {
-    const t587 = await createGmailTransporter({ secure: false, port: 587 });
-    await t587.sendMail(payload);
-    return;
-  } catch (err587) {
-    // Fallback attempt: implicit TLS on 465
-    const t465 = await createGmailTransporter({ secure: true, port: 465 });
-    await t465.sendMail(payload);
+  if (!gmailApiClient || !process.env.GMAIL_REFRESH_TOKEN) {
+    throw new Error('Gmail API credentials are not configured on server.');
+  }
+
+  gmailApiClient.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
+  const { token } = await gmailApiClient.getAccessToken();
+  if (!token) {
+    throw new Error('Unable to obtain Gmail API access token.');
+  }
+
+  const raw = buildOtpMailMessage(email, otp, name);
+  const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ raw }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Gmail API send failed: ${response.status} ${body}`);
   }
 }
 
@@ -183,13 +189,13 @@ router.post('/send-otp', async (req, res) => {
 
     if (email) {
       try {
-        if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+        if (!process.env.GMAIL_USER) {
           return res.status(503).json({ error: 'Email OTP is not configured on server.' });
         }
         await sendOTPEmail(email, otp, name || '');
         res.json({ success: true, message: `OTP sent to ${email}`, channel: 'email' });
       } catch (mailErr) {
-        console.error('Gmail SMTP error:', mailErr.message);
+        console.error('Gmail email error:', mailErr.message);
         res.status(503).json({ error: 'Failed to deliver email OTP in real-time. Please use Google sign-in or try phone OTP.' });
       }
     } else {

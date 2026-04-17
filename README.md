@@ -471,6 +471,12 @@ ShramSuraksha/
 - **Backend API URL:** [https://shramsuraksha-api-production.up.railway.app](https://shramsuraksha-api-production.up.railway.app)
 - **GitHub Repository:** [https://github.com/Ayush-Raj-Chourasia/ShramSuraksha](https://github.com/Ayush-Raj-Chourasia/ShramSuraksha)
 
+### Real-time OTP setup
+
+- Email OTP delivery now uses the Gmail API over HTTPS instead of SMTP, so the Railway backend is no longer dependent on outbound mail port access.
+- Required backend env vars: `GMAIL_USER`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, and `GOOGLE_CLIENT_ID`.
+- WhatsApp and SMS continue to use Twilio Verify / Twilio Messaging for real delivery.
+
 ---
 
 > *ShramSuraksha is built for the 4 AM rider who has nowhere to go when the city floods. This is not a product. It's a safety net.*

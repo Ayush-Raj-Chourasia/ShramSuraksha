@@ -6,6 +6,7 @@ import { dirname, join } from 'path';
 import authRoutes from './routes/auth.js';
 import policyRoutes from './routes/policy.js';
 import claimsRoutes from './routes/claims.js';
+import twilioRoutes from './routes/twilio.js';
 import weatherRoutes from './routes/weather.js';
 import aiRoutes from './routes/ai.js';
 import { connectDB } from './store.js';
@@ -24,6 +25,7 @@ const PORT = process.env.PORT || 3001;
 // ── Middleware ─────────────────────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 // ── Activity Logger middleware — logs EVERY request to DB ─────────────────
 app.use(async (req, res, next) => {
@@ -107,6 +109,7 @@ app.use(async (req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/policies', policyRoutes);
 app.use('/api/claims', claimsRoutes);
+app.use('/api/twilio', twilioRoutes);
 app.use('/api/weather', weatherRoutes);
 app.use('/api/ai', aiRoutes);
 
