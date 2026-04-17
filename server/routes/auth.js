@@ -15,7 +15,7 @@ const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_T
   : null;
 const hasTwilioVerify = !!(twilioClient && process.env.TWILIO_VERIFY_SERVICE_SID);
 
-async function createGmailTransporter() {
+async function createGmailTransporter({ secure = false, port = 587 } = {}) {
   let smtpHost = 'smtp.gmail.com';
   try {
     const v4 = await resolve4('smtp.gmail.com');
@@ -26,8 +26,8 @@ async function createGmailTransporter() {
 
   return nodemailer.createTransport({
     host: smtpHost,
-    port: 587,
-    secure: false,
+    port,
+    secure,
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 10000,
@@ -113,13 +113,23 @@ async function sendOTPEmail(email, otp, name) {
       </p>
     </div>
   `;
-  const transporter = await createGmailTransporter();
-  await transporter.sendMail({
+  const payload = {
     from: `"ShramSuraksha" <${process.env.GMAIL_USER}>`,
     to: email,
     subject: `${otp} — Your ShramSuraksha OTP (valid 10 min)`,
     html,
-  });
+  };
+
+  // First attempt: STARTTLS on 587
+  try {
+    const t587 = await createGmailTransporter({ secure: false, port: 587 });
+    await t587.sendMail(payload);
+    return;
+  } catch (err587) {
+    // Fallback attempt: implicit TLS on 465
+    const t465 = await createGmailTransporter({ secure: true, port: 465 });
+    await t465.sendMail(payload);
+  }
 }
 
 async function sendPhoneOtp(phone) {
