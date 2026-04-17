@@ -143,7 +143,7 @@ router.get('/user/:userId', async (req, res) => {
 // ── POST /api/claims/file ─────────────────────────────────────────────────
 router.post('/file', async (req, res) => {
   try {
-    const { userId, triggerType, triggerValue, location, wasWorking } = req.body;
+    const { userId, triggerType, triggerValue, location, wasWorking, simulateFraud } = req.body;
     if (!userId || !triggerType) return res.status(400).json({ error: 'userId and triggerType are required' });
 
     const policy = await Policy.findOne({ userId, status: 'active' });
@@ -169,30 +169,38 @@ router.post('/file', async (req, res) => {
 
     if (location && user) {
       const d = Math.sqrt(Math.pow(location.lat - user.gpsLat, 2) + Math.pow(location.lng - user.gpsLng, 2));
-      if (d > 0.5) { fraudScore += 0.4; fraudReasons.push('GPS location anomaly (>50km drift)'); }
+      // Strong GPS drift is treated as a primary fraud signal (spoofing risk)
+      if (d > 0.5) { fraudScore += 0.6; fraudReasons.push('GPS location anomaly (>50km drift)'); }
     }
 
     const prevFraud = await Claim.countDocuments({ userId, fraudFlag: true });
     if (prevFraud > 0) { fraudScore += 0.2; fraudReasons.push('Prior fraud history'); }
 
+    if (simulateFraud) {
+      fraudScore = Math.max(fraudScore, 0.95);
+      fraudReasons.push('Manual fraud simulation enabled for demo');
+    }
+
     if (fraudScore > 0.5) fraudFlag = true;
 
     // Strict parametric enforcement: claim only when trigger is currently active.
-    let liveReading;
-    try {
-      liveReading = await getLiveTriggerReading(user?.city || location?.area || 'Mumbai', triggerType);
-    } catch (liveErr) {
-      return res.status(503).json({
-        error: `Unable to validate live trigger now. ${liveErr.message}`,
-      });
-    }
+    let liveReading = null;
+    if (!simulateFraud) {
+      try {
+        liveReading = await getLiveTriggerReading(user?.city || location?.area || 'Mumbai', triggerType);
+      } catch (liveErr) {
+        return res.status(503).json({
+          error: `Unable to validate live trigger now. ${liveErr.message}`,
+        });
+      }
 
-    if (!liveReading?.active) {
-      return res.status(400).json({
-        error: `Trigger is not active right now in ${user?.city || 'your city'}. Current reading: ${liveReading?.value ?? 0} ${liveReading?.unit || ''}`,
-        triggerType,
-        currentReading: liveReading,
-      });
+      if (!liveReading?.active) {
+        return res.status(400).json({
+          error: `Trigger is not active right now in ${user?.city || 'your city'}. Current reading: ${liveReading?.value ?? 0} ${liveReading?.unit || ''}`,
+          triggerType,
+          currentReading: liveReading,
+        });
+      }
     }
 
     // ── Income-linked payout ───────────────────────────────────────────────

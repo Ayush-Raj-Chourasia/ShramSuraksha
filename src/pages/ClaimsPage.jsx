@@ -48,12 +48,13 @@ export default function ClaimsPage({ user, policy }) {
 
   // React Query: Optimistic Mutation for filing claims
   const fileClaimMutation = useMutation({
-    mutationFn: async ({ triggerType, triggerValue }) => {
+    mutationFn: async ({ triggerType, triggerValue, location, simulateFraud }) => {
       const res = await fileClaim({
         userId: user.id,
         triggerType,
         triggerValue,
-        location: { lat: user.gpsLat, lng: user.gpsLng, zone: user.zone, area: user.city },
+        location: location || { lat: user.gpsLat, lng: user.gpsLng, zone: user.zone, area: user.city },
+        simulateFraud: !!simulateFraud,
         wasWorking: true
       });
       return res.data;
@@ -91,6 +92,23 @@ export default function ClaimsPage({ user, policy }) {
   const handleFileClaim = (triggerType, triggerValue) => {
     if (!policy) { alert('Please activate a plan first'); navigate('/plans'); return; }
     fileClaimMutation.mutate({ triggerType, triggerValue });
+  };
+
+  const handleSimulateFakeClaim = () => {
+    if (!policy) { alert('Please activate a plan first'); navigate('/plans'); return; }
+
+    // Intentional spoofed location (far from the user city) to trigger fraud checks.
+    fileClaimMutation.mutate({
+      triggerType: 'heavy_rainfall',
+      triggerValue: 120,
+      simulateFraud: true,
+      location: {
+        lat: (user.gpsLat || 19.076) + 8.5,
+        lng: (user.gpsLng || 72.8777) + 8.5,
+        zone: 'spoofed-zone',
+        area: 'Unknown',
+      },
+    });
   };
 
   const triggerTypes = [
@@ -171,6 +189,18 @@ export default function ClaimsPage({ user, policy }) {
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--warning)' }}>Offline mode ready</div>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Claims auto-submit when network returns</div>
         </div>
+      </motion.div>
+
+      {/* Fraud Demo Trigger */}
+      <motion.div className="card" style={{ padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 12, background: 'var(--danger-bg)', borderColor: 'var(--danger-border)' }}
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--danger)' }}>Fraud detection demo</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Simulate GPS spoofing to show claim flagged as under review</div>
+        </div>
+        <button className="btn btn-danger btn-sm" disabled={fileClaimMutation.isPending} onClick={handleSimulateFakeClaim}>
+          Simulate Fake Claim
+        </button>
       </motion.div>
 
       {/* Claim History */}
