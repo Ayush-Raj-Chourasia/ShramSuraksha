@@ -46,6 +46,7 @@ export default function Navbar({ user, setUser }) {
             <a href="#how-it-works" className={`nav-link`} onClick={(e) => {
               if (location.pathname !== '/') { e.preventDefault(); navigate('/#how-it-works'); }
             }}>How It Works</a>
+            <Link to="/admin" className={`nav-link ${isActive('/admin')}`}>Admin Login</Link>
             <Link to="/auth" className="nav-btn nav-btn-primary">Get Protected →</Link>
           </>
         )}
@@ -94,6 +95,7 @@ export default function Navbar({ user, setUser }) {
           ) : (
             <>
               <Link to="/" className="nav-link" onClick={() => setMobileOpen(false)}>Home</Link>
+              <Link to="/admin" className="nav-link" onClick={() => setMobileOpen(false)}>Admin Login</Link>
               <Link to="/auth" className="btn btn-primary btn-sm" onClick={() => setMobileOpen(false)}>Get Protected</Link>
             </>
           )}

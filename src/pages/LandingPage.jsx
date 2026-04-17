@@ -116,6 +116,11 @@ export default function LandingPage({ user }) {
             <Link to={user ? "/dashboard" : "/auth"} className="btn btn-primary btn-lg" style={{ width: '100%', maxWidth: 300, display: 'flex', justifyContent: 'center' }}>
               {t.cta} <ArrowRight size={18} />
             </Link>
+            {!user && (
+              <Link to="/admin" className="btn btn-secondary" style={{ width: '100%', maxWidth: 300, display: 'flex', justifyContent: 'center' }}>
+                Admin Login
+              </Link>
+            )}
             <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontWeight: 500 }}>
               {t.ctaMicro}
             </div>

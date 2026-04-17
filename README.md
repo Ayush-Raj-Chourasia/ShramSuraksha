@@ -151,38 +151,7 @@ We have deliberately narrowed our focus to **food delivery workers** for the fol
 
 ## 🔄 Application Workflow
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│                        SHRAMSURAKSHA PLATFORM                     │
-│                                                                   │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────────────┐   │
-│  │  ONBOARDING   ──▶   POLICY MGT  ──▶   TRIGGER MONITORING      │
-│  └──────────────┘   └──────────────┘   └──────────────────────┘   │
-│         │                  │                      │               │
-│         ▼                  ▼                      ▼               │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────────────┐   │
-│  │ Worker KYC + │   │ Weekly Plan  │   │  Weather / AQI / Gov │   │
-│  │ Income Verify│   │ Selection &  │   │  Alert API Polling   │   │
-│  │ (Aadhaar+    │   │ Auto-Renewal │   │  Every 30 Minutes    │   │
-│  │  Platform ID)│   └──────────────┘   └──────────────────────┘   │
-│  └──────────────┘                                 │               │
-│                                                   ▼               │
-│                                    ┌──────────────────────────┐   │
-│                                    │   AI FRAUD ENGINE        │   │
-│                                    │  - GPS Zone Validation   │   │
-│                                    │  - Activity Cross-Check  │   │
-│                                    │  - Anomaly Detection     │   │
-│                                    └──────────────────────────┘   │
-│                                                   │               │
-│                                                   ▼               │
-│                                    ┌──────────────────────────┐   │
-│                                    │   PAYOUT PROCESSOR       │   │
-│                                    │  - Income Loss Calc      │   │
-│                                    │  - UPI Transfer          │   │
-│                                    │  - Notification Push     │   │
-│                                    └──────────────────────────┘   │
-└───────────────────────────────────────────────────────────────────┘
-```
+![ShramSuraksha Full System Architecture](./shramsuraksha_architecture.svg)
 
 ### Step-by-Step User Flow
 
@@ -492,6 +461,10 @@ ShramSuraksha/
 - **Frontend URL:** [https://shramsuraksha.vercel.app](https://shramsuraksha.vercel.app)
 - **Backend API URL:** [https://shramsuraksha-api-production.up.railway.app](https://shramsuraksha-api-production.up.railway.app)
 - **GitHub Repository:** [https://github.com/Ayush-Raj-Chourasia/ShramSuraksha](https://github.com/Ayush-Raj-Chourasia/ShramSuraksha)
+- **Admin Portal URL:** [https://shramsuraksha.vercel.app/admin](https://shramsuraksha.vercel.app/admin)
+- **Admin Login (Judge Demo):**
+  - **Username:** `admin@shramsuraksha.app`
+  - **Password:** `AdminPass123456`
 
 ### Real-time OTP setup
 
