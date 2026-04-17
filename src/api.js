@@ -15,6 +15,7 @@ const withAdminAuth = (adminToken) => ({
 // ── Auth & OTP ──────────────────────────────────────────────────────────
 export const sendOTP = (data) => api.post('/auth/send-otp', data);
 export const verifyOTP = (data) => api.post('/auth/verify-otp', data);
+export const getGoogleConfig = () => api.get('/auth/google-config');
 export const googleAuth = (credential) => api.post('/auth/google', { credential });
 export const adminLogin = (email, password) => api.post('/auth/admin/login', { email, password });
 export const registerWorker = (data) => api.post('/auth/register', data);

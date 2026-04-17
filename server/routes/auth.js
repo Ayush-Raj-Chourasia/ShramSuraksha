@@ -29,7 +29,7 @@ function buildOtpMailMessage(email, otp, name) {
     <div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f8f7ff;border-radius:16px;">
       <div style="text-align:center;margin-bottom:24px;">
         <div style="width:56px;height:56px;background:linear-gradient(135deg,#4F46E5,#7C3AED);border-radius:16px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;">
-          <span style="color:white;font-size:18px;font-weight:800;letter-spacing:0.6px;">SS</span>
+          <span style="color:white;font-size:24px;line-height:1;">🛡</span>
         </div>
         <h2 style="margin:0;color:#1a1a2e;font-size:22px;font-weight:800;">ShramSuraksha</h2>
         <p style="color:#64748b;margin:4px 0 0;font-size:13px;">Parametric Insurance for Delivery Workers</p>
@@ -62,6 +62,14 @@ function buildOtpMailMessage(email, otp, name) {
 
   return base64UrlEncode(mime);
 }
+
+// ── GET /api/auth/google-config ───────────────────────────────────────────
+router.get('/google-config', async (req, res) => {
+  res.json({
+    enabled: !!process.env.GOOGLE_CLIENT_ID,
+    clientId: process.env.GOOGLE_CLIENT_ID || null,
+  });
+});
 
 // Helper: generate 6-digit OTP
 function generateOTP() {

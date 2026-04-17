@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Phone, User, MapPin, Truck, ArrowRight, CheckCircle2, Mail, Clock, IndianRupee, MessageCircle, RefreshCw, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { sendOTP, verifyOTP, registerWorker, loginWorker, googleAuth } from '../api';
+import { sendOTP, verifyOTP, registerWorker, loginWorker, googleAuth, getGoogleConfig } from '../api';
 
 const PLATFORMS = [
   { id: 'zomato', label: 'Zomato', emoji: '🍕', color: '#E23744', income: 800 },
@@ -95,10 +95,18 @@ export default function AuthPage({ setUser, setPolicy }) {
   const isEmail = identifier.includes('@');
 
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) return;
+    let active = true;
+    const resolveGoogleClientId = async () => {
+      if (import.meta.env.VITE_GOOGLE_CLIENT_ID) return import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      try {
+        const cfg = await getGoogleConfig();
+        return cfg.data?.clientId || '';
+      } catch (_) {
+        return '';
+      }
+    };
 
-    const initGoogle = () => {
+    const initGoogle = (clientId) => {
       if (!window.google?.accounts?.id) return;
       window.google.accounts.id.initialize({
         client_id: clientId,
@@ -143,20 +151,27 @@ export default function AuthPage({ setUser, setPolicy }) {
       setGoogleEnabled(true);
     };
 
-    if (window.google?.accounts?.id) {
-      initGoogle();
-      return;
-    }
+    const bootstrap = async () => {
+      const clientId = await resolveGoogleClientId();
+      if (!clientId || !active) return;
 
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = initGoogle;
-    document.body.appendChild(script);
+      if (window.google?.accounts?.id) {
+        initGoogle(clientId);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => initGoogle(clientId);
+      document.body.appendChild(script);
+    };
+
+    bootstrap();
 
     return () => {
-      if (script.parentNode) script.parentNode.removeChild(script);
+      active = false;
     };
   }, [navigate, setPolicy, setUser]);
 
