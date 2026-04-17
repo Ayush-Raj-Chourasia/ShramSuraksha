@@ -116,11 +116,40 @@ app.use('/api/ai', aiRoutes);
 // ── Activity Logs endpoint (admin) ─────────────────────────────────────────
 app.get('/api/logs', requireAdmin, async (req, res) => {
   try {
-    const { limit = 100, userId, action, category } = req.query;
+    const { limit = 100, userId, action, category, phone, email, name, ip, status, from, to, q } = req.query;
     const filter = {};
     if (userId) filter.userId = userId;
     if (action) filter.action = action;
     if (category) filter.category = category;
+    if (status) filter.status = status;
+    if (ip) filter.ip = { $regex: ip, $options: 'i' };
+    if (name) filter.userName = { $regex: name, $options: 'i' };
+    if (q) {
+      const rx = { $regex: q, $options: 'i' };
+      filter.$or = [
+        { action: rx },
+        { category: rx },
+        { userName: rx },
+        { city: rx },
+        { platform: rx },
+        { errorMessage: rx },
+      ];
+    }
+
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) filter.createdAt.$gte = new Date(from);
+      if (to) filter.createdAt.$lte = new Date(to);
+    }
+
+    if (phone || email) {
+      const workerFilter = {};
+      if (phone) workerFilter.phone = { $regex: phone, $options: 'i' };
+      if (email) workerFilter.email = { $regex: email, $options: 'i' };
+      const workers = await Worker.find(workerFilter).select('_id').lean();
+      const ids = workers.map(w => w._id.toString());
+      filter.userId = filter.userId ? filter.userId : { $in: ids.length ? ids : ['__no_match__'] };
+    }
 
     const logs = await ActivityLog.find(filter)
       .sort({ createdAt: -1 })
@@ -137,6 +166,43 @@ app.get('/api/logs', requireAdmin, async (req, res) => {
     res.json({
       logs: logs.map(l => ({ id: l._id, ...l })),
       summary: { totalLogs, todayLogs, errorLogs, uniqueActiveUsers: uniqueUsers.length }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Real claim analytics (last 7 days) for admin charts ───────────────────
+app.get('/api/claim-analytics', requireAdmin, async (req, res) => {
+  try {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+
+    const claims = await Claim.find({ createdAt: { $gte: start } }).lean();
+    const labels = [];
+    const days = {};
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      labels.push(key);
+      days[key] = { name: d.toLocaleDateString('en-IN', { weekday: 'short' }), auto: 0, manual: 0, payouts: 0 };
+    }
+
+    for (const c of claims) {
+      const key = new Date(c.createdAt).toISOString().slice(0, 10);
+      if (!days[key]) continue;
+      if (c.autoTriggered) days[key].auto += 1;
+      else days[key].manual += 1;
+      days[key].payouts += (c.payoutAmount || 0);
+    }
+
+    res.json({
+      days: labels.map(k => ({ ...days[k], total: days[k].auto + days[k].manual })),
+      timestamp: now.toISOString(),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

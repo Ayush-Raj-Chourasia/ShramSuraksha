@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import axios from 'axios';
 import { Worker, Policy, Claim, Alert } from '../models.js';
 import { getCityTier, PLATFORM_INCOME } from '../models.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
@@ -32,6 +33,49 @@ const TRIGGERS = {
   storm:          { threshold: 80, unit: 'km/h',  baseRate: 1.1, source: 'IMD', emoji: '⛈️' },
   curfew:         { threshold: 1,  unit: 'active',baseRate: 0.9, source: 'Govt',emoji: '🚫' },
 };
+
+async function getLiveTriggerReading(city, triggerType) {
+  const apiKey = process.env.WEATHER_API_KEY;
+  if (!apiKey) {
+    throw new Error('WEATHER_API_KEY is not configured.');
+  }
+
+  if (triggerType === 'severe_aqi') {
+    const geoRes = await axios.get(
+      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)},IN&limit=1&appid=${apiKey}`,
+      { timeout: 7000 }
+    );
+    if (!geoRes.data?.length) return { active: false, value: 0, unit: 'AQI' };
+    const { lat, lon } = geoRes.data[0];
+    const aqiRes = await axios.get(
+      `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`,
+      { timeout: 7000 }
+    );
+    const baseAqi = aqiRes.data?.list?.[0]?.main?.aqi || 1;
+    const detailedAqi = baseAqi * 60;
+    return { active: detailedAqi > TRIGGERS.severe_aqi.threshold, value: detailedAqi, unit: 'AQI' };
+  }
+
+  if (triggerType === 'curfew') {
+    return { active: false, value: 0, unit: 'active' };
+  }
+
+  const weatherRes = await axios.get(
+    `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)},IN&appid=${apiKey}&units=metric`,
+    { timeout: 7000 }
+  );
+  const data = weatherRes.data || {};
+  const temp = data.main?.temp || 0;
+  const rain1h = data.rain?.['1h'] || 0;
+  const windSpeed = data.wind?.speed || 0;
+
+  if (triggerType === 'extreme_heat') return { active: temp > TRIGGERS.extreme_heat.threshold, value: temp, unit: '°C' };
+  if (triggerType === 'heavy_rainfall') return { active: rain1h > TRIGGERS.heavy_rainfall.threshold, value: rain1h, unit: 'mm/hr' };
+  if (triggerType === 'flooding') return { active: rain1h > TRIGGERS.flooding.threshold, value: rain1h, unit: 'mm/hr' };
+  if (triggerType === 'storm') return { active: windSpeed > TRIGGERS.storm.threshold, value: windSpeed, unit: 'km/h' };
+
+  return { active: false, value: 0, unit: '' };
+}
 
 // ── Income-linked payout calculation ─────────────────────────────────────
 // Formula: basePayout = declaredIncome × hoursLost(~0.5 day) × tierMultiplier × behavioralBonus × planFactor
@@ -132,6 +176,24 @@ router.post('/file', async (req, res) => {
     if (prevFraud > 0) { fraudScore += 0.2; fraudReasons.push('Prior fraud history'); }
 
     if (fraudScore > 0.5) fraudFlag = true;
+
+    // Strict parametric enforcement: claim only when trigger is currently active.
+    let liveReading;
+    try {
+      liveReading = await getLiveTriggerReading(user?.city || location?.area || 'Mumbai', triggerType);
+    } catch (liveErr) {
+      return res.status(503).json({
+        error: `Unable to validate live trigger now. ${liveErr.message}`,
+      });
+    }
+
+    if (!liveReading?.active) {
+      return res.status(400).json({
+        error: `Trigger is not active right now in ${user?.city || 'your city'}. Current reading: ${liveReading?.value ?? 0} ${liveReading?.unit || ''}`,
+        triggerType,
+        currentReading: liveReading,
+      });
+    }
 
     // ── Income-linked payout ───────────────────────────────────────────────
     const payoutCalc = calcIncomePayout({ trigger, user, policy, plan: policy.plan });

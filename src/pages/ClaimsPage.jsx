@@ -143,15 +143,17 @@ export default function ClaimsPage({ user, policy }) {
           {triggerTypes.map((t, i) => {
             const isActive = activeTriggers.some(at => at.type === t.type);
             return (
-              <div key={i} className="card card-interactive card-hover" style={{ padding: 18, display: 'flex', gap: 14, alignItems: 'center', opacity: fileClaimMutation.isPending ? 0.6 : 1, cursor: fileClaimMutation.isPending ? 'not-allowed' : 'pointer' }}
-                onClick={() => !fileClaimMutation.isPending && handleFileClaim(t.type, isActive ? activeTriggers.find(at => at.type === t.type)?.value : t.threshold.match(/\d+/)?.[0])}>
+              <div key={i} className="card card-interactive card-hover" style={{ padding: 18, display: 'flex', gap: 14, alignItems: 'center', opacity: (fileClaimMutation.isPending || !isActive) ? 0.6 : 1, cursor: (fileClaimMutation.isPending || !isActive) ? 'not-allowed' : 'pointer' }}
+                onClick={() => !fileClaimMutation.isPending && isActive && handleFileClaim(t.type, activeTriggers.find(at => at.type === t.type)?.value)}>
                 <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', background: t.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.color, flexShrink: 0 }}>
                   {t.icon}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
                     {t.label}
-                    {isActive && <span className="badge badge-danger" style={{ fontSize: 9, padding: '2px 8px' }}>TRIGGERED</span>}
+                    {isActive
+                      ? <span className="badge badge-danger" style={{ fontSize: 9, padding: '2px 8px' }}>TRIGGERED</span>
+                      : <span className="badge" style={{ fontSize: 9, padding: '2px 8px', background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>INACTIVE</span>}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Threshold: {t.threshold}</div>
                 </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { BarChart3, Users, Shield, AlertTriangle, TrendingUp, Brain, FileText, Clock, Activity, Zap, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
-import { getStats, getAllClaims, getAllWorkers, riskAssessment, getCityTierBreakdown, getMonitorStatus, getLogs, adminLogin } from '../api';
+import { getStats, getAllClaims, getAllWorkers, riskAssessment, getCityTierBreakdown, getMonitorStatus, getLogs, adminLogin, getClaimAnalytics } from '../api';
 
 const TIER_COLORS = { tier1: '#4F46E5', tier2: '#0D9488', tier3: '#64748B' };
 const TIER_LABELS = { tier1: 'Metro (Tier-1)', tier2: 'Tier-2 City', tier3: 'Tier-3 / Other' };
@@ -22,7 +22,12 @@ export default function AdminPage() {
   const [monitorStatus, setMonitorStatus] = useState(null);
   const [activityLogs, setActivityLogs] = useState([]);
   const [logSummary, setLogSummary] = useState(null);
+  const [claimAnalytics, setClaimAnalytics] = useState([]);
   const [logFilter, setLogFilter] = useState('all');
+  const [logQuery, setLogQuery] = useState('');
+  const [logPhone, setLogPhone] = useState('');
+  const [logEmail, setLogEmail] = useState('');
+  const [workerQuery, setWorkerQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { 
@@ -54,12 +59,13 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [s, c, w, ai, tb, ms, logs] = await Promise.allSettled([
+      const [s, c, w, ai, tb, ms, logs, analytics] = await Promise.allSettled([
         getStats(adminToken), getAllClaims(adminToken), getAllWorkers(adminToken),
         riskAssessment({ city: 'Mumbai', zone: '4B' }),
         getCityTierBreakdown(adminToken),
         getMonitorStatus(adminToken),
         getLogs(adminToken, { limit: 50 }),
+        getClaimAnalytics(adminToken),
       ]);
       if (s.status === 'fulfilled') setStats(s.value.data);
       if (c.status === 'fulfilled') setClaims(c.value.data);
@@ -71,6 +77,9 @@ export default function AdminPage() {
         setActivityLogs(logs.value.data?.logs || []);
         setLogSummary(logs.value.data?.summary || null);
       }
+      if (analytics.status === 'fulfilled') {
+        setClaimAnalytics(analytics.value.data?.days || []);
+      }
     } catch (e) {
       console.error(e);
       const status = e?.response?.status;
@@ -81,9 +90,16 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  const refreshLogs = async () => {
+  const refreshLogs = async (override = {}) => {
     try {
-      const params = logFilter !== 'all' ? { category: logFilter, limit: 50 } : { limit: 50 };
+      const params = {
+        limit: 50,
+        ...(logFilter !== 'all' ? { category: logFilter } : {}),
+        ...(logQuery ? { q: logQuery } : {}),
+        ...(logPhone ? { phone: logPhone } : {}),
+        ...(logEmail ? { email: logEmail } : {}),
+        ...override,
+      };
       const res = await getLogs(adminToken, params);
       setActivityLogs(res.data?.logs || []);
       setLogSummary(res.data?.summary || null);
@@ -101,21 +117,25 @@ export default function AdminPage() {
   const autoTriggered = claims.filter(c => c.autoTriggered).length;
   const manualClaims = claims.length - autoTriggered;
 
-  const volumeData = [
-    { name: 'Mon', claims: 12, payouts: 8400, auto: 4 },
-    { name: 'Tue', claims: 19, payouts: 13200, auto: 7 },
-    { name: 'Wed', claims: 8, payouts: 5600, auto: 3 },
-    { name: 'Thu', claims: 24, payouts: 16800, auto: 9 },
-    { name: 'Fri', claims: 15, payouts: 10500, auto: 5 },
-    { name: 'Sat', claims: 6, payouts: 4200, auto: 2 },
-    { name: 'Sun', claims: 3, payouts: 2100, auto: 1 },
-  ];
+  const volumeData = claimAnalytics.map(d => ({
+    name: d.name,
+    claims: d.manual,
+    auto: d.auto,
+    payouts: d.payouts,
+  }));
 
   const tierChartData = tierBreakdown
     ? Object.entries(tierBreakdown).map(([tier, count]) => ({ name: TIER_LABELS[tier] || tier, value: count, fill: TIER_COLORS[tier] || '#94a3b8' }))
     : [];
 
   const fraudAlerts = claims.filter(c => c.fraudFlag);
+  const workerRows = workers.filter(w => {
+    if (!workerQuery.trim()) return true;
+    const q = workerQuery.toLowerCase();
+    return [w.name, w.phone, w.email, w.platform, w.city]
+      .filter(Boolean)
+      .some(v => String(v).toLowerCase().includes(q));
+  });
 
   if (!isAuthenticated) {
     return (
@@ -363,7 +383,10 @@ export default function AdminPage() {
 
       {/* Workers Table */}
       <motion.div className="card" style={{ padding: 24, overflow: 'auto' }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-tertiary)', marginBottom: 16 }}>REGISTERED WORKERS · RISK PROFILE</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-tertiary)', marginBottom: 0 }}>REGISTERED WORKERS · RISK PROFILE</p>
+          <input className="form-input" style={{ maxWidth: 300 }} placeholder="Filter workers by phone/email/name/city" value={workerQuery} onChange={e => setWorkerQuery(e.target.value)} />
+        </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ borderBottom: '2px solid var(--border)' }}>
@@ -373,7 +396,7 @@ export default function AdminPage() {
             </tr>
           </thead>
           <tbody>
-            {workers.map((w, i) => {
+            {workerRows.map((w, i) => {
               const tierMult = w.cityTier === 'tier1' ? 1.3 : w.cityTier === 'tier2' ? 1.1 : 1.0;
               const tierLabel = w.cityTier === 'tier1' ? 'Metro' : w.cityTier === 'tier2' ? 'Tier-2' : 'Tier-3';
               const tierColor = TIER_COLORS[w.cityTier] || '#64748B';
@@ -428,7 +451,7 @@ export default function AdminPage() {
         {/* Filter tabs */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {['all', 'auth', 'claim', 'policy', 'weather', 'ai', 'error'].map(f => (
-            <button key={f} onClick={() => { setLogFilter(f); setTimeout(refreshLogs, 0); }}
+            <button key={f} onClick={() => { setLogFilter(f); setTimeout(() => refreshLogs({ category: f === 'all' ? undefined : f }), 0); }}
               style={{ padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer',
                 background: logFilter === f ? 'var(--primary)' : 'var(--bg-secondary)',
                 color: logFilter === f ? 'white' : 'var(--text-secondary)',
@@ -436,6 +459,14 @@ export default function AdminPage() {
               {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
+        </div>
+
+        {/* Search/filter row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 14 }}>
+          <input className="form-input" placeholder="Search action/user/city" value={logQuery} onChange={e => setLogQuery(e.target.value)} />
+          <input className="form-input" placeholder="Filter by phone" value={logPhone} onChange={e => setLogPhone(e.target.value)} />
+          <input className="form-input" placeholder="Filter by email" value={logEmail} onChange={e => setLogEmail(e.target.value)} />
+          <button onClick={() => refreshLogs()} className="btn btn-secondary" style={{ padding: '8px 12px' }}>Apply Filters</button>
         </div>
 
         {/* Log table */}
