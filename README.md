@@ -1,7 +1,29 @@
-# 🛡️ ShramSuraksha — Real-Time Parametric Income Protection against Weather Disruptions
+# 🛡️ ShramSuraksha — AI Parametric Income Protection for India’s Gig Economy
 
-> **Guidewire DEVTrails 2026 | Unicorn Chase**
-> **Phase 1 Submission | Team: Era | ITER - SOA University**
+> **Guidewire DEVTrails 2026 | Final Phase 3 Submission**
+> **Team: Era | ITER - SOA University**
+
+## ✅ Final Phase 3 Status (April 17, 2026)
+
+This repository now includes the full end-to-end scope required for final judging:
+
+- Weekly pricing model with active policy lifecycle and AI-adjusted premium recommendations
+- Income-loss-only coverage with strict exclusions for health/life/vehicle claims
+- Real-time parametric trigger monitoring and automated claim initiation
+- Income-linked payouts using city-tier multipliers and behavioral risk adjustments
+- Fraud controls: duplicate checks, GPS anomaly detection, historical fraud signals, and review workflow
+- Simulated instant payout references for approved claims and settlement-time metrics
+- Worker dashboard: protected earnings, active coverage, claim history, and trust metrics
+- Admin dashboard: loss-ratio analytics, trigger monitor health, fraud visibility, activity logs, and claims audit filters
+
+For quick technical walkthrough, start with:
+
+- `server/index.js`
+- `server/routes/claims.js`
+- `server/routes/trigger-monitor.js`
+- `server/routes/ai.js`
+- `src/pages/Dashboard.jsx`
+- `src/pages/AdminPage.jsx`
 
 ---
 

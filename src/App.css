@@ -13,8 +13,8 @@
   top: 0;
   z-index: 100;
   background: rgba(255,255,255,0.85);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
   padding: 0 32px;
   height: 72px;
@@ -682,4 +682,132 @@
 .footer-text {
   font-size: 14px;
   color: var(--text-tertiary);
+}
+
+/* ─── Landing Footer Wordmark ─── */
+.landing-footer {
+  position: relative;
+  overflow: hidden;
+  padding: 56px 0 32px;
+  background: linear-gradient(180deg, var(--bg-primary) 0%, #eef2ff 100%);
+  border-top: 1px solid var(--border);
+}
+
+.landing-footer-inner {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.landing-footer-wordmark-wrap {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+}
+
+.landing-footer-wordmark {
+  display: block;
+  width: 100vw;
+  text-align: center;
+  margin: 0;
+  font-size: clamp(42px, 11.9vw, 150px);
+  line-height: 0.8;
+  font-weight: 900;
+  letter-spacing: -0.015em;
+  color: rgba(79, 70, 229, 0.12);
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.landing-footer-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 0;
+}
+
+.landing-footer-copy h3 {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.landing-footer-copy p {
+  max-width: 640px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.landing-footer-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: right;
+  min-width: 220px;
+}
+
+.landing-footer-meta span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+@media (max-width: 720px) {
+  .landing-footer {
+    padding: 36px 0 24px;
+  }
+
+  .landing-footer-inner {
+    padding: 0 16px;
+  }
+
+  .landing-footer-wordmark-wrap {
+    margin-top: 14px;
+  }
+
+  .landing-footer-wordmark {
+    display: block;
+    width: 100vw;
+    text-align: center;
+    font-size: 11.8vw;
+    line-height: 0.85;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    margin: 0;
+  }
+
+  .landing-footer-copy {
+    margin-top: 0;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .landing-footer-meta {
+    text-align: left;
+    min-width: 0;
+  }
+
+  .landing-footer-copy h3 {
+    font-size: 16px;
+  }
+
+  .landing-footer-copy p {
+    font-size: 13px;
+    max-width: 100%;
+  }
 }

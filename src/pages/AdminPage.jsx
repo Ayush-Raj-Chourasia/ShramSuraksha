@@ -28,6 +28,12 @@ export default function AdminPage() {
   const [logPhone, setLogPhone] = useState('');
   const [logEmail, setLogEmail] = useState('');
   const [workerQuery, setWorkerQuery] = useState('');
+  const [claimStatusFilter, setClaimStatusFilter] = useState('all');
+  const [claimTriggerFilter, setClaimTriggerFilter] = useState('all');
+  const [claimPhoneFilter, setClaimPhoneFilter] = useState('');
+  const [claimEmailFilter, setClaimEmailFilter] = useState('');
+  const [claimFromDate, setClaimFromDate] = useState('');
+  const [claimToDate, setClaimToDate] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { 
@@ -129,6 +135,35 @@ export default function AdminPage() {
     : [];
 
   const fraudAlerts = claims.filter(c => c.fraudFlag);
+  const triggerOptions = [...new Set(claims.map(c => c.triggerType).filter(Boolean))].sort();
+
+  const filteredClaims = claims.filter(c => {
+    if (claimStatusFilter !== 'all' && c.status !== claimStatusFilter) return false;
+    if (claimTriggerFilter !== 'all' && c.triggerType !== claimTriggerFilter) return false;
+
+    if (claimPhoneFilter.trim()) {
+      const phone = (c.userPhone || '').toLowerCase();
+      if (!phone.includes(claimPhoneFilter.trim().toLowerCase())) return false;
+    }
+
+    if (claimEmailFilter.trim()) {
+      const email = (c.userEmail || '').toLowerCase();
+      if (!email.includes(claimEmailFilter.trim().toLowerCase())) return false;
+    }
+
+    const claimDate = new Date(c.createdAt);
+    if (claimFromDate) {
+      const from = new Date(`${claimFromDate}T00:00:00`);
+      if (claimDate < from) return false;
+    }
+    if (claimToDate) {
+      const to = new Date(`${claimToDate}T23:59:59.999`);
+      if (claimDate > to) return false;
+    }
+
+    return true;
+  });
+
   const workerRows = workers.filter(w => {
     if (!workerQuery.trim()) return true;
     const q = workerQuery.toLowerCase();
@@ -419,12 +454,88 @@ export default function AdminPage() {
                   </td>
                   <td style={{ padding: '12px' }}>₹{w.declaredIncome || 750}/day</td>
                   <td style={{ padding: '12px', fontWeight: 600, color: 'var(--primary)' }}>₹{estPayout}</td>
-                  <td style={{ padding: '12px', fontWeight: 600, color: 'var(--success)' }}>₹{w.totalPaidOut}</td>
+                  <td style={{ padding: '12px', fontWeight: 600, color: 'var(--success)' }}>₹{w.totalEarningsProtected || 0}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+      </motion.div>
+
+      {/* Claims Audit Table */}
+      <motion.div className="card" style={{ padding: 24, marginTop: 24, overflow: 'auto' }}
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-tertiary)', marginBottom: 0 }}>CLAIMS AUDIT TABLE</p>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            Showing <strong>{filteredClaims.length}</strong> of <strong>{claims.length}</strong> claims
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 14 }}>
+          <select className="form-input" value={claimStatusFilter} onChange={e => setClaimStatusFilter(e.target.value)}>
+            <option value="all">All statuses</option>
+            <option value="settled">Settled</option>
+            <option value="under_review">Under Review</option>
+            <option value="pending">Pending</option>
+          </select>
+          <select className="form-input" value={claimTriggerFilter} onChange={e => setClaimTriggerFilter(e.target.value)}>
+            <option value="all">All trigger types</option>
+            {triggerOptions.map(t => (
+              <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
+            ))}
+          </select>
+          <input className="form-input" type="date" value={claimFromDate} onChange={e => setClaimFromDate(e.target.value)} />
+          <input className="form-input" type="date" value={claimToDate} onChange={e => setClaimToDate(e.target.value)} />
+          <input className="form-input" placeholder="Phone filter" value={claimPhoneFilter} onChange={e => setClaimPhoneFilter(e.target.value)} />
+          <input className="form-input" placeholder="Email filter" value={claimEmailFilter} onChange={e => setClaimEmailFilter(e.target.value)} />
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                {['Time', 'Worker', 'Phone', 'Email', 'Trigger', 'Status', 'Mode', 'Payout', 'Fraud', 'Reference'].map(h => (
+                  <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--text-tertiary)', fontSize: 10, letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredClaims.length === 0 ? (
+                <tr>
+                  <td colSpan={10} style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                    No claims match current filters
+                  </td>
+                </tr>
+              ) : filteredClaims.map((c, i) => (
+                <tr key={c.id || i} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '8px 10px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                    {new Date(c.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                  <td style={{ padding: '8px 10px', fontWeight: 600 }}>{c.userName || `Worker ${c.userId?.slice(-6)}`}</td>
+                  <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>{c.userPhone || '—'}</td>
+                  <td style={{ padding: '8px 10px', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.userEmail || '—'}</td>
+                  <td style={{ padding: '8px 10px', textTransform: 'capitalize' }}>{(c.triggerType || '').replace(/_/g, ' ')}</td>
+                  <td style={{ padding: '8px 10px' }}>
+                    <span className={`badge ${c.status === 'settled' ? 'badge-success' : c.status === 'under_review' ? 'badge-danger' : 'badge-warning'}`} style={{ fontSize: 10 }}>
+                      {c.status || 'pending'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '8px 10px' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: c.autoTriggered ? '#8B5CF6' : 'var(--text-secondary)' }}>
+                      {c.autoTriggered ? 'AUTO' : 'MANUAL'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '8px 10px', fontWeight: 700, color: c.status === 'settled' ? 'var(--success)' : 'var(--text-secondary)' }}>₹{c.payoutAmount || 0}</td>
+                  <td style={{ padding: '8px 10px', color: c.fraudFlag ? 'var(--danger)' : 'var(--success)', fontWeight: 700 }}>
+                    {c.fraudFlag ? `YES (${c.fraudScore || 0})` : 'NO'}
+                  </td>
+                  <td style={{ padding: '8px 10px', color: 'var(--text-tertiary)', fontSize: 11, whiteSpace: 'nowrap' }}>{c.paymentRef || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </motion.div>
 
       {/* ── Live Activity Log ──────────────────────────────────────────── */}

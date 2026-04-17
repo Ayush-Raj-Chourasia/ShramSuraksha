@@ -228,13 +228,29 @@ export default function LandingPage({ user }) {
       </section>
 
       {/* Footer */}
-      <footer className="footer">
-        <p className="footer-text">
-          {t.copy}
-        </p>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-          {t.subCopy}
-        </p>
+      <footer className="landing-footer">
+        <div className="landing-footer-inner">
+          <div className="landing-footer-copy">
+            <div>
+              <h3>Income protection built for delivery partners.</h3>
+              <p>
+                Weekly pricing, weather-linked automation, and instant payout simulation for gig workers who lose earnings when the city shuts down.
+              </p>
+            </div>
+            <div className="landing-footer-meta">
+              <span>AI Parametric Insurance</span>
+              <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0, textAlign: 'inherit' }}>
+                {t.copy}
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0, textAlign: 'inherit' }}>
+                {t.subCopy}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="landing-footer-wordmark-wrap" aria-hidden="true">
+          <div className="landing-footer-wordmark">ShramSuraksha</div>
+        </div>
       </footer>
     </div>
   );

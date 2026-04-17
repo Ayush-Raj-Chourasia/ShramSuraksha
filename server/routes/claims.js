@@ -271,8 +271,25 @@ router.post('/file', async (req, res) => {
 // ── GET /api/claims/all ───────────────────────────────────────────────────
 router.get('/all', requireAdmin, async (req, res) => {
   try {
-    const claims = await Claim.find().sort({ createdAt: -1 }).lean();
-    res.json(claims.map(c => ({ id: c._id, ...c })));
+    const [claims, workers] = await Promise.all([
+      Claim.find().sort({ createdAt: -1 }).lean(),
+      Worker.find().select('_id name phone email city platform').lean(),
+    ]);
+
+    const workerMap = new Map(workers.map(w => [w._id.toString(), w]));
+
+    res.json(claims.map(c => {
+      const worker = workerMap.get(c.userId);
+      return {
+        id: c._id,
+        ...c,
+        userName: c.userName || worker?.name || '',
+        userPhone: worker?.phone || '',
+        userEmail: worker?.email || '',
+        userCity: worker?.city || '',
+        userPlatform: c.userPlatform || worker?.platform || '',
+      };
+    }));
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
