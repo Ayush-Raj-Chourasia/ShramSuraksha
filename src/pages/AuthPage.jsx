@@ -106,66 +106,75 @@ export default function AuthPage({ setUser, setPolicy }) {
       }
     };
 
-    const initGoogle = (clientId) => {
-      if (!window.google?.accounts?.oauth2) return;
-      window.googleClient = window.google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: 'email profile openid',
-        callback: async (tokenResponse) => {
-          if (tokenResponse && tokenResponse.access_token) {
-            setError('');
-            setGoogleLoading(true);
-            try {
-              const res = await googleAuth(tokenResponse.access_token);
-              if (res.data.signupRequired) {
-                setMode('register');
-                setStep('profile');
-                setIdentifier(res.data.profile.email);
-                setForm(prev => ({
-                  ...prev,
-                  name: res.data.profile.name || prev.name,
-                  phone: prev.phone || '',
-                }));
-              } else {
-                setUser(res.data.user);
-                if (res.data.activePolicy) setPolicy(res.data.activePolicy);
-                navigate('/dashboard');
-              }
-            } catch (err) {
-              const msg = err.response?.data?.error || err.message || 'Google sign-in failed';
-              setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
-            } finally {
-              setGoogleLoading(false);
+    // Check if we just returned from Google OAuth redirect
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token=')) {
+      const params = new URLSearchParams(hash.replace('#', '?'));
+      const accessToken = params.get('access_token');
+      if (accessToken) {
+        // Clear hash from URL cleanly
+        window.history.replaceState(null, '', window.location.pathname);
+        
+        setError('');
+        setGoogleLoading(true);
+        googleAuth(accessToken)
+          .then(res => {
+            if (res.data.signupRequired) {
+              setMode('register');
+              setStep('profile');
+              setIdentifier(res.data.profile.email);
+              setForm(prev => ({
+                ...prev,
+                name: res.data.profile.name || prev.name,
+                phone: prev.phone || '',
+              }));
+            } else {
+              setUser(res.data.user);
+              if (res.data.activePolicy) setPolicy(res.data.activePolicy);
+              navigate('/dashboard');
             }
-          }
-        }
-      });
-      setGoogleEnabled(true);
-    };
-
-    const bootstrap = async () => {
-      const clientId = await resolveGoogleClientId();
-      if (!clientId || !active) return;
-
-      if (window.google?.accounts?.oauth2) {
-        initGoogle(clientId);
-        return;
+          })
+          .catch(err => {
+            const msg = err.response?.data?.error || err.message || 'Google sign-in failed';
+            setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+          })
+          .finally(() => {
+            setGoogleLoading(false);
+          });
       }
-
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => initGoogle(clientId);
-      document.body.appendChild(script);
-    };
-
-    bootstrap();
+    }
+    
+    // Enable the Google button if we can resolve a client ID
+    resolveGoogleClientId().then(id => {
+      if (id && active) setGoogleEnabled(true);
+    });
 
     return () => {
       active = false;
     };
   }, [navigate, setPolicy, setUser]);
+
+  const handleGoogleRedirect = async () => {
+    let clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      try {
+        const cfg = await getGoogleConfig();
+        clientId = cfg.data?.clientId;
+      } catch (e) {
+        console.error("Failed to fetch Google Config");
+      }
+    }
+    
+    if (!clientId) {
+      setError('Google Client ID not configured');
+      return;
+    }
+
+    // Use full-page redirect to completely bypass popup blockers
+    const redirectUri = window.location.href.split('#')[0]; 
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=email%20profile%20openid&prompt=select_account`;
+    window.location.href = url;
+  };
 
   // ── Step 1: Send OTP ──────────────────────────────────
   const handleSendOTP = async (e) => {
@@ -339,7 +348,7 @@ export default function AuthPage({ setUser, setPolicy }) {
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <button
                   type="button"
-                  onClick={() => window.googleClient?.requestAccessToken()}
+                  onClick={handleGoogleRedirect}
                   disabled={!googleEnabled || googleLoading}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
