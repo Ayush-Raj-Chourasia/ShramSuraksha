@@ -204,8 +204,6 @@ documents\SAHARA_Complete_Blueprint.html
 !backend/Procfile
 !backend/railway.json
 .vercel
-
-
 # Logs
 logs
 *.log
