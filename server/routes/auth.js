@@ -201,20 +201,53 @@ async function verifyPhoneOtp(phone, otp) {
 }
 
 async function verifyGoogleCredential(credential) {
-  const ticket = await googleClient.verifyIdToken({
-    idToken: credential,
-    audience: process.env.GOOGLE_CLIENT_ID,
-  });
-  const payload = ticket.getPayload();
-  if (!payload?.email_verified) {
-    throw new Error('Google account email is not verified.');
+  // ID tokens are JWTs (3 dot-separated parts). Access tokens from Google are not.
+  if (credential.split('.').length === 3) {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload?.email_verified) {
+      throw new Error('Google account email is not verified.');
+    }
+    return {
+      email: payload.email?.toLowerCase(),
+      name: payload.name || '',
+      picture: payload.picture || '',
+      sub: payload.sub,
+    };
+  } else {
+    // Treat as an access token
+    // 1. Verify token audience to prevent Confused Deputy attack
+    const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${credential}`);
+    if (!tokenInfoRes.ok) {
+      throw new Error('Invalid or expired access token.');
+    }
+    const tokenInfo = await tokenInfoRes.json();
+    if (tokenInfo.azp !== process.env.GOOGLE_CLIENT_ID && tokenInfo.aud !== process.env.GOOGLE_CLIENT_ID) {
+      throw new Error('Token was not issued to this application.');
+    }
+
+    // 2. Fetch user profile
+    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${credential}` }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch user profile.');
+    }
+    const payload = await response.json();
+    if (payload.email_verified === false) {
+      throw new Error('Google account email is not verified.');
+    }
+    
+    return {
+      email: payload.email?.toLowerCase(),
+      name: payload.name || '',
+      picture: payload.picture || '',
+      sub: payload.sub,
+    };
   }
-  return {
-    email: payload.email?.toLowerCase(),
-    name: payload.name || '',
-    picture: payload.picture || '',
-    sub: payload.sub,
-  };
 }
 
 // ── POST /api/auth/send-otp ────────────────────────────────────────────────

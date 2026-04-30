@@ -107,47 +107,39 @@ export default function AuthPage({ setUser, setPolicy }) {
     };
 
     const initGoogle = (clientId) => {
-      if (!window.google?.accounts?.id) return;
-      window.google.accounts.id.initialize({
+      if (!window.google?.accounts?.oauth2) return;
+      window.googleClient = window.google.accounts.oauth2.initTokenClient({
         client_id: clientId,
-        callback: async ({ credential }) => {
-          setError('');
-          setGoogleLoading(true);
-          try {
-            const res = await googleAuth(credential);
-            if (res.data.signupRequired) {
-              setMode('register');
-              setStep('profile');
-              setIdentifier(res.data.profile.email);
-              setForm(prev => ({
-                ...prev,
-                name: res.data.profile.name || prev.name,
-                phone: prev.phone || '',
-              }));
-            } else {
-              setUser(res.data.user);
-              if (res.data.activePolicy) setPolicy(res.data.activePolicy);
-              navigate('/dashboard');
+        scope: 'email profile openid',
+        callback: async (tokenResponse) => {
+          if (tokenResponse && tokenResponse.access_token) {
+            setError('');
+            setGoogleLoading(true);
+            try {
+              const res = await googleAuth(tokenResponse.access_token);
+              if (res.data.signupRequired) {
+                setMode('register');
+                setStep('profile');
+                setIdentifier(res.data.profile.email);
+                setForm(prev => ({
+                  ...prev,
+                  name: res.data.profile.name || prev.name,
+                  phone: prev.phone || '',
+                }));
+              } else {
+                setUser(res.data.user);
+                if (res.data.activePolicy) setPolicy(res.data.activePolicy);
+                navigate('/dashboard');
+              }
+            } catch (err) {
+              const msg = err.response?.data?.error || err.message || 'Google sign-in failed';
+              setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+            } finally {
+              setGoogleLoading(false);
             }
-          } catch (err) {
-            const msg = err.response?.data?.error || err.message || 'Google sign-in failed';
-            setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
-          } finally {
-            setGoogleLoading(false);
           }
         }
       });
-      const node = document.getElementById('google-signin-btn');
-      if (node) {
-        node.innerHTML = '';
-        window.google.accounts.id.renderButton(node, {
-          theme: 'outline',
-          size: 'large',
-          width: 320,
-          text: 'continue_with',
-          shape: 'pill',
-        });
-      }
       setGoogleEnabled(true);
     };
 
@@ -155,7 +147,7 @@ export default function AuthPage({ setUser, setPolicy }) {
       const clientId = await resolveGoogleClientId();
       if (!clientId || !active) return;
 
-      if (window.google?.accounts?.id) {
+      if (window.google?.accounts?.oauth2) {
         initGoogle(clientId);
         return;
       }
@@ -345,7 +337,21 @@ export default function AuthPage({ setUser, setPolicy }) {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <div id="google-signin-btn" />
+                <button
+                  type="button"
+                  onClick={() => window.googleClient?.requestAccessToken()}
+                  disabled={!googleEnabled || googleLoading}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+                    width: '100%', maxWidth: 320, padding: '12px', borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border)', background: 'white', fontWeight: 600,
+                    fontSize: 15, color: 'var(--text-primary)', cursor: (!googleEnabled || googleLoading) ? 'not-allowed' : 'pointer',
+                    boxShadow: 'var(--shadow-sm)', transition: 'all 0.2s', opacity: (!googleEnabled || googleLoading) ? 0.7 : 1
+                  }}
+                >
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: 22, height: 22 }} />
+                  Continue with Google
+                </button>
               </div>
               {googleLoading && (
                 <div style={{ marginTop: 8, textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)' }}>
