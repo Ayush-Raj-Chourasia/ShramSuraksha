@@ -185,12 +185,6 @@ export default function AuthPage({ setUser, setPolicy }) {
       const res = await sendOTP(payload);
       setStep('otp');
       startResendCountdown();
-      // If demo mode, auto-fill OTP boxes for convenience
-      if (res.data?.demoOtp) {
-        const digits = res.data.demoOtp.toString().split('');
-        setOtpValues(digits.length === 6 ? digits : ['', '', '', '', '', '']);
-        setError(`Demo mode: OTP is ${res.data.demoOtp}. Click Verify to continue.`);
-      }
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'Failed to send OTP.';
       setError(typeof msg === 'string' ? msg : JSON.stringify(msg));

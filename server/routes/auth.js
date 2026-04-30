@@ -148,51 +148,34 @@ async function sendOTPEmail(email, otp, name) {
   }
 }
 
-const hasTwilioWhatsApp = !!(twilioClient && process.env.TWILIO_WHATSAPP_NUMBER);
-
-// Returns { channel, otp? } — otp is only set for demo-mode so the route can surface it
 async function sendPhoneOtp(phone) {
-  const to = toE164IN(phone);
-  const identifier = normalizeIdentifier({ phone });
-  const session = await OtpSession.findOne({ identifier }).sort({ createdAt: -1 }).lean();
-  const otp = session?.otpCode || generateOTP();
+  if (!hasTwilioVerify && !hasTwilioSms) {
+    throw new Error('SMS OTP is not configured on server.');
+  }
 
-  // 1️⃣  Twilio Verify (best)
+  const to = toE164IN(phone);
+
+  // Prefer Twilio Verify if configured (no code changes needed)
   if (hasTwilioVerify) {
     await twilioClient.verify.v2
       .services(process.env.TWILIO_VERIFY_SERVICE_SID)
       .verifications.create({ to, channel: 'sms' });
-    return { channel: 'sms' };
+    return;
   }
 
-  // 2️⃣  Direct SMS via Twilio Messages
-  if (hasTwilioSms) {
-    await twilioClient.messages.create({
-      to,
-      from: process.env.TWILIO_SMS_NUMBER,
-      body: `Your ShramSuraksha verification code is ${otp}. Do not share this code.`,
-    });
-    return { channel: 'sms' };
-  }
+  // Fall back to direct SMS using Twilio Messages and local OTP stored in DB.
+  // Retrieve the most recent OTP for this identifier (send-otp creates it just before calling here).
+  const identifier = normalizeIdentifier({ phone });
+  const session = await OtpSession.findOne({ identifier }).sort({ createdAt: -1 }).lean();
+  const otp = session?.otpCode || generateOTP();
 
-  // 3️⃣  WhatsApp sandbox fallback
-  if (hasTwilioWhatsApp) {
-    try {
-      await twilioClient.messages.create({
-        to: `whatsapp:${to}`,
-        from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
-        body: `Your ShramSuraksha verification code is ${otp}. Do not share this code.`,
-      });
-      return { channel: 'whatsapp' };
-    } catch (waErr) {
-      console.warn('WhatsApp OTP fallback failed:', waErr.message);
-      // fall through to demo mode
-    }
-  }
+  const body = `Your verification code is ${otp}. Do not share this code with anyone.`;
 
-  // 4️⃣  Demo mode — OTP stored in DB, returned to caller so the UI can show it
-  console.log(`[DEMO MODE] OTP for ${phone}: ${otp}`);
-  return { channel: 'demo', otp };
+  await twilioClient.messages.create({
+    to,
+    from: process.env.TWILIO_SMS_NUMBER,
+    body,
+  });
 }
 
 async function verifyPhoneOtp(phone, otp) {
@@ -261,19 +244,8 @@ router.post('/send-otp', async (req, res) => {
       }
     } else {
       try {
-        const result = await sendPhoneOtp(identifier);
-        if (result.channel === 'demo') {
-          // Demo mode — OTP stored in DB, surfaced to the user for hackathon demo
-          res.json({
-            success: true,
-            message: `Demo mode: Your OTP is ${result.otp}`,
-            channel: 'demo',
-            demoOtp: result.otp,
-          });
-        } else {
-          const channelLabel = result.channel === 'whatsapp' ? 'WhatsApp' : 'SMS';
-          res.json({ success: true, message: `OTP sent via ${channelLabel} to ${phone}`, channel: result.channel });
-        }
+        await sendPhoneOtp(identifier);
+        res.json({ success: true, message: `OTP sent to ${phone}`, channel: 'sms' });
       } catch (smsErr) {
         console.error('Twilio SMS error:', smsErr.message);
         if ((smsErr.message || '').toLowerCase().includes('unverified')) {
