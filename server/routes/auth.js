@@ -15,6 +15,7 @@ const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_T
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   : null;
 const hasTwilioVerify = !!(twilioClient && process.env.TWILIO_VERIFY_SERVICE_SID);
+const hasTwilioSms = !!(twilioClient && process.env.TWILIO_SMS_NUMBER);
 
 function base64UrlEncode(text) {
   return Buffer.from(text)
@@ -148,21 +149,55 @@ async function sendOTPEmail(email, otp, name) {
 }
 
 async function sendPhoneOtp(phone) {
-  if (!hasTwilioVerify) {
+  if (!hasTwilioVerify && !hasTwilioSms) {
     throw new Error('SMS OTP is not configured on server.');
   }
+
   const to = toE164IN(phone);
-  await twilioClient.verify.v2
-    .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-    .verifications.create({ to, channel: 'sms' });
+
+  // Prefer Twilio Verify if configured (no code changes needed)
+  if (hasTwilioVerify) {
+    await twilioClient.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verifications.create({ to, channel: 'sms' });
+    return;
+  }
+
+  // Fall back to direct SMS using Twilio Messages and local OTP stored in DB.
+  // Retrieve the most recent OTP for this identifier (send-otp creates it just before calling here).
+  const identifier = normalizeIdentifier({ phone });
+  const session = await OtpSession.findOne({ identifier }).sort({ createdAt: -1 }).lean();
+  const otp = session?.otpCode || generateOTP();
+
+  const body = `Your verification code is ${otp}. Do not share this code with anyone.`;
+
+  await twilioClient.messages.create({
+    to,
+    from: process.env.TWILIO_SMS_NUMBER,
+    body,
+  });
 }
 
 async function verifyPhoneOtp(phone, otp) {
-  const to = toE164IN(phone);
-  const check = await twilioClient.verify.v2
-    .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-    .verificationChecks.create({ to, code: otp.toString() });
-  return check.status === 'approved';
+  // If Verify is available, use it (backwards-compatible).
+  if (hasTwilioVerify) {
+    const to = toE164IN(phone);
+    const check = await twilioClient.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verificationChecks.create({ to, code: otp.toString() });
+    return check.status === 'approved';
+  }
+
+  // Otherwise verify against local OtpSession stored in DB.
+  const identifier = normalizeIdentifier({ phone });
+  const session = await OtpSession.findOne({
+    identifier,
+    otpCode: otp.toString(),
+    verified: false,
+    expiresAt: { $gt: new Date() },
+  }).sort({ updatedAt: -1 });
+
+  return !!session;
 }
 
 async function verifyGoogleCredential(credential) {
@@ -240,7 +275,7 @@ router.post('/verify-otp', async (req, res) => {
     if (session.attempts >= 5) return res.status(429).json({ error: 'Too many attempts. Request a new OTP.' });
 
     if (session.otpType === 'sms_verify') {
-      if (!hasTwilioVerify) {
+      if (!hasTwilioVerify && !hasTwilioSms) {
         return res.status(503).json({ error: 'SMS verification service is not configured.' });
       }
       const approved = await verifyPhoneOtp(normalizedIdentifier, otp);
