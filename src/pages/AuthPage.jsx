@@ -321,7 +321,7 @@ export default function AuthPage({ setUser, setPolicy }) {
               ))}
             </div>
 
-            <form onSubmit={handleSendOTP} className="card" style={{ padding: 28 }}>
+            <form onSubmit={handleSendOTP} className="card" style={{ padding: '28px 28px 16px 28px', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: 'none', marginBottom: 0 }}>
               <div className="form-group">
                 <label className="form-label">
                   {isEmail ? <Mail size={14} style={{ marginRight: 6, verticalAlign: -2 }} /> : <Phone size={14} style={{ marginRight: 6, verticalAlign: -2 }} />}
@@ -335,8 +335,16 @@ export default function AuthPage({ setUser, setPolicy }) {
               <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
                 {loading ? <div className="spinner" style={{ width: 18, height: 18 }} /> : (mode === 'register' ? `${t.sendOtp} →` : `${t.login} →`)}
               </button>
+            </form>
 
-              <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
+            <div className="card" style={{ padding: '0 28px 28px 28px', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: 'none', background: 'white' }}>
+              <div style={{ display: 'flex', alignItems: 'center', margin: '0 0 16px 0' }}>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }}></div>
+                <div style={{ padding: '0 12px', fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600 }}>OR</div>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }}></div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <div id="google-signin-btn" />
               </div>
               {googleLoading && (
@@ -349,7 +357,7 @@ export default function AuthPage({ setUser, setPolicy }) {
                   Google sign-in unavailable until client ID is configured.
                 </div>
               )}
-            </form>
+            </div>
           </motion.div>
         )}
 
